@@ -192,12 +192,15 @@ export default function Map({ data, selectedPolyIds, labelField, baseLayer, file
         <MapContainer
             center={[31.5204, 74.3587]}
             zoom={13}
+            maxZoom={24}
             className="w-full h-full bg-[#0a0a0a]"
             zoomControl={false}
         >
             <div className={filterClass}>
                 <TileLayer
                     url={tileUrl}
+                    maxZoom={24}
+                    maxNativeZoom={baseLayer === 'satellite' ? 20 : 19}
                     attribution={baseLayer === 'satellite' ? 'Esri &copy; OpenStreetMap' : '&copy; OpenStreetMap'}
                 />
             </div>
