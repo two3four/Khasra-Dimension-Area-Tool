@@ -1,8 +1,16 @@
 import * as turf from '@turf/turf';
+import proj4 from 'proj4';
+
+// UTM Zone definitions
+const UTM42N = "+proj=utm +zone=42 +datum=WGS84 +units=m +no_defs";
+const UTM43N = "+proj=utm +zone=43 +datum=WGS84 +units=m +no_defs";
+const WGS84 = "EPSG:4326";
+
+export type CRS = 'UTM42N' | 'UTM43N';
 
 export interface Dimension {
   point: [number, number]; // [lng, lat]
-  length: number;
+  lengthMeters: number;
   label: string;
 }
 
@@ -15,30 +23,41 @@ export interface KhasraStats {
 }
 
 /**
- * Converts area in square meters to Kanal-Marla units.
- * Using the logic from the original ArcMap script:
+ * Formats a distance in meters into "Xk - Yft" (Karam and Feet).
+ * 1 Karam = 5.5 Feet.
+ */
+export function formatKaramFeet(meters: number): string {
+  const feet = meters * 3.28084;
+  const karams = Math.floor(feet / 5.5);
+  const remainingFeet = feet - (karams * 5.5);
+
+  if (karams > 0) {
+    return `${karams}k - ${remainingFeet.toFixed(1)}ft`;
+  }
+  return `${remainingFeet.toFixed(1)}ft`;
+}
+
+/**
+ * Converts area in square meters (projected) to Kanal-Marla units.
  * 1 Sq Karam = 30.25 Sq Ft
  * 1 Marla = 272.25 Sq Ft
  * 1 Kanal = 20 Marlas
- * 
- * Note: If the input area is in Square Meters (typical for GeoJSON), 
- * we first convert to Sq Ft.
  */
 export function calculateKanalMarla(areaSqMeters: number): KhasraStats {
-  // 1 square meter = 10.7639 square feet
+  // Use accurate projected area conversion
   const areaSqFt = areaSqMeters * 10.7639;
   const totalMarlas = areaSqFt / 272.25;
-  
+
   const kanals = Math.floor(totalMarlas / 20);
   const remainingMarlas = totalMarlas - (kanals * 20);
-  
+
   let label = '';
   if (kanals > 0) {
     label = `${kanals} K - ${remainingMarlas.toFixed(2)} M`;
   } else {
     label = `${remainingMarlas.toFixed(2)} Marla`;
   }
-  
+
   return {
     areaSqFt,
     totalMarlas,
@@ -49,35 +68,54 @@ export function calculateKanalMarla(areaSqMeters: number): KhasraStats {
 }
 
 /**
- * Calculates dimensions (lengths and midpoints) for each segment of a polygon.
+ * Calculates dimensions using projected coordinates for better accuracy.
  */
-export function calculateDimensions(feature: any): Dimension[] {
+export function calculateDimensions(feature: any, crs: CRS): Dimension[] {
   const dimensions: Dimension[] = [];
-  const coords = feature.geometry.type === 'Polygon' 
-    ? feature.geometry.coordinates[0] 
+  const coords = feature.geometry.type === 'Polygon'
+    ? feature.geometry.coordinates[0]
     : feature.geometry.coordinates[0][0];
+
+  const projection = crs === 'UTM42N' ? UTM42N : UTM43N;
 
   for (let i = 0; i < coords.length - 1; i++) {
     const p1 = coords[i];
     const p2 = coords[i + 1];
-    
-    // Calculate length in meters (using turf for accuracy with lat/lng)
-    const line = turf.lineString([p1, p2]);
-    const lengthMeters = turf.length(line, { units: 'meters' });
-    
-    // Convert meters to 'Karams' if needed, but here we just show length in a readable format.
-    // The user's script showed length_val directly from math.hypot.
-    // In many local revenue maps, units are indeed Karams.
-    // For now, we'll provide meters and raw units if possible.
-    
+
+    // Project points to meters
+    const [x1, y1] = proj4(WGS84, projection, p1);
+    const [x2, y2] = proj4(WGS84, projection, p2);
+
+    // Euclidean distance in projected space (meters)
+    const lengthMeters = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+
     const midpoint = turf.midpoint(p1, p2).geometry.coordinates as [number, number];
-    
+
     dimensions.push({
       point: midpoint,
-      length: lengthMeters,
-      label: lengthMeters.toFixed(2)
+      lengthMeters,
+      label: formatKaramFeet(lengthMeters)
     });
   }
-  
+
   return dimensions;
+}
+
+/**
+ * Calculates projected area in square meters.
+ */
+export function calculateProjectedArea(feature: any, crs: CRS): number {
+  const projection = crs === 'UTM42N' ? UTM42N : UTM43N;
+  const coords = feature.geometry.type === 'Polygon'
+    ? feature.geometry.coordinates[0]
+    : feature.geometry.coordinates[0][0];
+
+  // Simple polygon area formula in projected space
+  let area = 0;
+  for (let i = 0; i < coords.length - 1; i++) {
+    const [x1, y1] = proj4(WGS84, projection, coords[i]);
+    const [x2, y2] = proj4(WGS84, projection, coords[i + 1]);
+    area += (x1 * y2) - (x2 * y1);
+  }
+  return Math.abs(area) / 2;
 }

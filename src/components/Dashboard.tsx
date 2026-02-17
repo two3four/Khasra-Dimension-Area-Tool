@@ -3,9 +3,9 @@
 import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import FileUploader from './FileUploader';
-import { calculateKanalMarla, calculateDimensions, KhasraStats, Dimension } from '@/lib/geo-utils';
+import { calculateKanalMarla, calculateDimensions, calculateProjectedArea, KhasraStats, Dimension, CRS } from '@/lib/geo-utils';
 import * as turf from '@turf/turf';
-import { Layers, Map as MapIcon, Table, Info } from 'lucide-react';
+import { Layers, Map as MapIcon, Table, Info, Globe } from 'lucide-react';
 
 const Map = dynamic<any>(() => import('./Map'), {
     ssr: false,
@@ -28,6 +28,7 @@ export interface MapData {
 export default function Dashboard() {
     const [mapData, setMapData] = useState<MapData | null>(null);
     const [selectedPolyId, setSelectedPolyId] = useState<string | null>(null);
+    const [selectedCRS, setSelectedCRS] = useState<CRS>('UTM42N');
     const [isProcessing, setIsProcessing] = useState(false);
 
     const handleFileProcessed = (geojson: any) => {
@@ -55,19 +56,27 @@ export default function Dashboard() {
     const handleSelectKhasra = (id: string) => {
         setSelectedPolyId(id);
         if (mapData) {
-            const updatedPolygons = mapData.polygons.map(poly => {
-                if (poly.id === id && (!poly.stats || !poly.dimensions)) {
-                    // Calculate only if not already calculated
-                    const area = turf.area(poly.feature);
-                    const stats = calculateKanalMarla(area);
-                    const dimensions = calculateDimensions(poly.feature);
-                    return { ...poly, stats, dimensions };
-                }
-                return poly;
-            });
-            setMapData(prev => prev ? { ...prev, polygons: updatedPolygons } : null);
+            // Lazily calculate stats if not already present (or if we want to force re-calc)
+            const polyIdx = mapData.polygons.findIndex(p => p.id === id);
+            if (polyIdx !== -1) {
+                const poly = mapData.polygons[polyIdx];
+                const area = calculateProjectedArea(poly.feature, selectedCRS);
+                const stats = calculateKanalMarla(area);
+                const dimensions = calculateDimensions(poly.feature, selectedCRS);
+
+                const newPolygons = [...mapData.polygons];
+                newPolygons[polyIdx] = { ...poly, stats, dimensions };
+                setMapData({ ...mapData, polygons: newPolygons });
+            }
         }
     };
+
+    // Re-calculate stats when CRS changes for the selected polygon
+    React.useEffect(() => {
+        if (selectedPolyId && mapData) {
+            handleSelectKhasra(selectedPolyId);
+        }
+    }, [selectedCRS, selectedPolyId, mapData]); // Added mapData to dependencies to ensure it's available
 
     return (
         <div className="flex flex-col h-screen bg-black text-slate-100 overflow-hidden font-sans">
@@ -79,7 +88,21 @@ export default function Dashboard() {
                     </div>
                     <h1 className="text-xl font-bold tracking-tight">Khasra Dimension <span className="text-red-500">Tool</span></h1>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2 bg-slate-800/80 rounded-lg p-1 border border-slate-700">
+                        <div className="pl-2 flex items-center gap-1.5 text-slate-400">
+                            <Globe className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-bold uppercase tracking-wider">Projection</span>
+                        </div>
+                        <select
+                            value={selectedCRS}
+                            onChange={(e) => setSelectedCRS(e.target.value as CRS)}
+                            className="bg-slate-900 text-xs font-bold px-3 py-1.5 rounded-md border-none focus:ring-1 focus:ring-red-500 outline-none cursor-pointer"
+                        >
+                            <option value="UTM42N">UTM Zone 42N</option>
+                            <option value="UTM43N">UTM Zone 43N</option>
+                        </select>
+                    </div>
                     <button
                         onClick={() => setMapData(null)}
                         className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white transition-colors"
