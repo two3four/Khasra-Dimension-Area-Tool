@@ -17,7 +17,7 @@ const fixLeafletIcon = () => {
     });
 };
 
-function MapResizer({ data }: { data: MapData | null }) {
+function MapResizer({ data, fileVersion }: { data: MapData | null, fileVersion: number }) {
     const map = useMap();
     useEffect(() => {
         if (data?.geojson) {
@@ -26,34 +26,35 @@ function MapResizer({ data }: { data: MapData | null }) {
                 map.fitBounds(bounds, { padding: [50, 50] });
             }
         }
-    }, [data, map]);
+    }, [fileVersion]); // Only trigger when a new file is loaded
     return null;
 }
 
 interface MapProps {
     data: MapData | null;
-    selectedPolyId: string | null;
+    selectedPolyIds: string[];
+    labelField: string;
+    fileVersion: number;
     onSelect: (id: string) => void;
 }
 
-export default function Map({ data, selectedPolyId, onSelect }: MapProps) {
+export default function Map({ data, selectedPolyIds, labelField, fileVersion, onSelect }: MapProps) {
     useEffect(() => {
         fixLeafletIcon();
     }, []);
 
-    const polygonStyle = (feature: any, isSelected: boolean) => ({
+    const polygonStyle = (isSelected: boolean) => ({
         fillColor: isSelected ? '#ef4444' : '#334155',
         weight: isSelected ? 3 : 1,
         opacity: 1,
         color: isSelected ? '#ef4444' : '#475569',
-        fillOpacity: isSelected ? 0.3 : 0.1,
+        fillOpacity: isSelected ? 0.3 : 0.05,
     });
 
     const onEachFeature = (feature: any, layer: L.Layer) => {
         layer.on({
             click: (e) => {
                 L.DomEvent.stopPropagation(e);
-                // Find the poly id in data
                 const poly = data?.polygons.find(p => p.feature === feature);
                 if (poly) {
                     onSelect(poly.id);
@@ -65,25 +66,23 @@ export default function Map({ data, selectedPolyId, onSelect }: MapProps) {
             },
             mouseout: (e: any) => {
                 const layer = e.target;
-                const isSelected = data?.polygons.find(p => p.feature === feature)?.id === selectedPolyId;
-                layer.setStyle({ fillOpacity: isSelected ? 0.3 : 0.1 });
+                const isSelected = selectedPolyIds.includes(data?.polygons.find(p => p.feature === feature)?.id || '');
+                layer.setStyle({ fillOpacity: isSelected ? 0.3 : 0.05 });
             }
         });
     };
 
-    const labelIcon = (text: string, isArea: boolean = false) => L.divIcon({
+    const labelIcon = (text: string, isMain: boolean = false) => L.divIcon({
         className: 'custom-div-icon',
         html: `
       <div class="flex flex-col items-center">
-        <span class="${isArea ? 'px-2 py-1 bg-red-600 text-white font-bold' : 'px-1.5 py-0.5 bg-slate-900 border border-slate-700 text-slate-300 text-[10px]'} rounded shadow-xl whitespace-nowrap">
+        <span class="${isMain ? 'px-2 py-1 bg-red-600 text-white font-bold' : 'px-1.5 py-0.5 bg-slate-900 border border-slate-700 text-slate-300 text-[10px]'} rounded shadow-xl whitespace-nowrap">
           ${text}
         </span>
       </div>
     `,
         iconSize: L.point(0, 0),
     });
-
-    const selectedPoly = data?.polygons.find(p => p.id === selectedPolyId);
 
     return (
         <MapContainer
@@ -99,36 +98,36 @@ export default function Map({ data, selectedPolyId, onSelect }: MapProps) {
 
             {data?.geojson && (
                 <GeoJSON
-                    key={`geojson-${selectedPolyId}`} // Remount to apply styles correctly if needed, though onEachFeature is better
+                    key={`geojson-${fileVersion}-${selectedPolyIds.length}`} // Key change triggers update
                     data={data.geojson}
                     style={(feature) => {
                         const poly = data.polygons.find(p => p.feature === feature);
-                        return polygonStyle(feature, poly?.id === selectedPolyId);
+                        return polygonStyle(selectedPolyIds.includes(poly?.id || ''));
                     }}
                     onEachFeature={onEachFeature}
                 />
             )}
 
-            {selectedPoly && selectedPoly.stats && (
-                <React.Fragment>
-                    {/* Area Label at Center */}
+            {data?.polygons.filter(p => selectedPolyIds.includes(p.id)).map((poly) => (
+                <React.Fragment key={poly.id}>
+                    {/* Main Label: Area + Custom Field */}
                     <Marker
-                        position={selectedPoly.center}
-                        icon={labelIcon(selectedPoly.stats.label, true)}
+                        position={poly.center}
+                        icon={labelIcon(`${poly.feature.properties[labelField] || ''} | ${poly.stats?.label || ''}`, true)}
                     />
 
                     {/* Side Dimensions at Midpoints */}
-                    {selectedPoly.dimensions?.map((dim, dIdx) => (
+                    {poly.dimensions?.map((dim, dIdx) => (
                         <Marker
-                            key={`${selectedPoly.id}-dim-${dIdx}`}
+                            key={`${poly.id}-dim-${dIdx}`}
                             position={[dim.point[1], dim.point[0]]}
                             icon={labelIcon(dim.label)}
                         />
                     ))}
                 </React.Fragment>
-            )}
+            ))}
 
-            <MapResizer data={data} />
+            <MapResizer data={data} fileVersion={fileVersion} />
 
             <style jsx global>{`
         .leaflet-container {

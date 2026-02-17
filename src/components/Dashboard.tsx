@@ -23,17 +23,27 @@ export interface KhasraData {
 export interface MapData {
     geojson: any;
     polygons: KhasraData[];
+    availableFields: string[];
 }
 
 export default function Dashboard() {
     const [mapData, setMapData] = useState<MapData | null>(null);
-    const [selectedPolyId, setSelectedPolyId] = useState<string | null>(null);
+    const [selectedPolyIds, setSelectedPolyIds] = useState<string[]>([]);
+    const [labelField, setLabelField] = useState<string>('');
     const [selectedCRS, setSelectedCRS] = useState<CRS>('UTM42N');
     const [isProcessing, setIsProcessing] = useState(false);
+    const [fileVersion, setFileVersion] = useState(0);
 
     const handleFileProcessed = (geojson: any) => {
         setIsProcessing(true);
         try {
+            // Extract fields from the first feature
+            const properties = geojson.features[0]?.properties || {};
+            const fields = Object.keys(properties);
+            if (fields.length > 0 && !labelField) {
+                setLabelField(fields[0]);
+            }
+
             const polygons = geojson.features.map((feature: any, index: number) => {
                 const center = turf.centerOfMass(feature).geometry.coordinates as [number, number];
                 return {
@@ -43,8 +53,9 @@ export default function Dashboard() {
                 };
             });
 
-            setMapData({ geojson, polygons });
-            setSelectedPolyId(null);
+            setMapData({ geojson, polygons, availableFields: fields });
+            setSelectedPolyIds([]);
+            setFileVersion(v => v + 1);
         } catch (error) {
             console.error("Error processing geojson:", error);
             alert("Failed to process spatial data. Please ensure the shapefile is valid.");
@@ -53,30 +64,48 @@ export default function Dashboard() {
         }
     };
 
-    const handleSelectKhasra = (id: string) => {
-        setSelectedPolyId(id);
-        if (mapData) {
-            // Lazily calculate stats if not already present (or if we want to force re-calc)
-            const polyIdx = mapData.polygons.findIndex(p => p.id === id);
-            if (polyIdx !== -1) {
-                const poly = mapData.polygons[polyIdx];
+    const handleSelectKhasra = (id: string, toggle: boolean = true) => {
+        if (!mapData) return;
+
+        let nextIds = [...selectedPolyIds];
+        const isSelected = nextIds.includes(id);
+
+        if (toggle && isSelected) {
+            nextIds = nextIds.filter(prevId => prevId !== id);
+        } else if (!isSelected) {
+            nextIds.push(id);
+        }
+
+        setSelectedPolyIds(nextIds);
+
+        // Lazily calculate stats if not already present (or if we want to force re-calc)
+        const polyIdx = mapData.polygons.findIndex(p => p.id === id);
+        if (polyIdx !== -1) {
+            const poly = mapData.polygons[polyIdx];
+            // Calculate if toggle off (force) or if stats missing
+            if (!toggle || !isSelected) {
                 const area = calculateProjectedArea(poly.feature, selectedCRS);
                 const stats = calculateKanalMarla(area);
                 const dimensions = calculateDimensions(poly.feature, selectedCRS);
 
-                const newPolygons = [...mapData.polygons];
-                newPolygons[polyIdx] = { ...poly, stats, dimensions };
-                setMapData({ ...mapData, polygons: newPolygons });
+                setMapData(prev => {
+                    if (!prev) return null;
+                    const newPolys = [...prev.polygons];
+                    newPolys[polyIdx] = { ...poly, stats, dimensions };
+                    return { ...prev, polygons: newPolys };
+                });
             }
         }
     };
 
-    // Re-calculate stats when CRS changes for the selected polygon
+    // Re-calculate stats when CRS changes for ALL selected polygons
     React.useEffect(() => {
-        if (selectedPolyId && mapData) {
-            handleSelectKhasra(selectedPolyId);
+        if (selectedPolyIds.length > 0 && mapData) {
+            selectedPolyIds.forEach(id => {
+                handleSelectKhasra(id, false); // force re-calc without toggling
+            });
         }
-    }, [selectedCRS, selectedPolyId, mapData]); // Added mapData to dependencies to ensure it's available
+    }, [selectedCRS]);
 
     return (
         <div className="flex flex-col h-screen bg-black text-slate-100 overflow-hidden font-sans">
@@ -130,25 +159,44 @@ export default function Dashboard() {
                         ) : (
                             <div className="space-y-6">
                                 <div>
-                                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                        <Table className="w-4 h-4" /> Data Summary
-                                    </h3>
-                                    <div className="space-y-3">
-                                        {mapData.polygons.map((poly, idx) => (
-                                            <div
-                                                key={poly.id}
-                                                className={`p-4 rounded-xl bg-slate-800/50 border ${selectedPolyId === poly.id ? 'border-red-500' : 'border-slate-700/50'} hover:border-red-500/50 transition-all cursor-pointer group`}
-                                                onClick={() => handleSelectKhasra(poly.id)}
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                            <Table className="w-4 h-4" /> Khasra List
+                                        </h3>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Label By:</span>
+                                            <select
+                                                value={labelField}
+                                                onChange={(e) => setLabelField(e.target.value)}
+                                                className="bg-slate-800 text-[10px] text-slate-300 border border-slate-700 rounded px-1.5 py-1 outline-none focus:border-red-500 max-w-[100px]"
                                             >
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <span className="text-xs font-bold text-red-400">KHASRA #{idx + 1}</span>
-                                                    {poly.stats && <span className="text-[10px] text-slate-500">{poly.stats.areaSqFt.toLocaleString()} Sq Ft</span>}
+                                                {mapData.availableFields.map(f => (
+                                                    <option key={f} value={f}>{f}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {mapData.polygons.map((poly, idx) => {
+                                            const isSelected = selectedPolyIds.includes(poly.id);
+                                            return (
+                                                <div
+                                                    key={poly.id}
+                                                    className={`p-4 rounded-xl bg-slate-800/50 border ${isSelected ? 'border-red-500' : 'border-slate-700/50'} hover:border-red-500/50 transition-all cursor-pointer group`}
+                                                    onClick={() => handleSelectKhasra(poly.id)}
+                                                >
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <span className="text-xs font-bold text-red-400">
+                                                            {poly.feature.properties[labelField] || `ID: ${idx + 1}`}
+                                                        </span>
+                                                        {poly.stats && <span className="text-[10px] text-slate-500">{poly.stats.areaSqFt.toLocaleString()} Sq Ft</span>}
+                                                    </div>
+                                                    <div className="text-lg font-bold text-white group-hover:text-red-400 transition-colors">
+                                                        {poly.stats ? poly.stats.label : 'Click to select'}
+                                                    </div>
                                                 </div>
-                                                <div className="text-lg font-bold text-white group-hover:text-red-400 transition-colors">
-                                                    {poly.stats ? poly.stats.label : 'Click to view details'}
-                                                </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
@@ -181,7 +229,9 @@ export default function Dashboard() {
                         {/* @ts-ignore */}
                         <Map
                             data={mapData}
-                            selectedPolyId={selectedPolyId}
+                            selectedPolyIds={selectedPolyIds}
+                            labelField={labelField}
+                            fileVersion={fileVersion}
                             onSelect={handleSelectKhasra}
                         />
                     </div>
