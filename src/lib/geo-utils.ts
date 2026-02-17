@@ -8,6 +8,20 @@ const WGS84 = "EPSG:4326";
 
 export type CRS = 'UTM42N' | 'UTM43N';
 
+export interface Dimension {
+  point: [number, number]; // [lng, lat]
+  lengthMeters: number;
+  label: string;
+}
+
+export interface KhasraStats {
+  areaSqFt: number;
+  totalMarlas: number;
+  kanals: number;
+  marlas: number;
+  label: string;
+}
+
 // Patwari Standards (Standard: 1 Karam = 5.5 Feet)
 const KARAM_TO_FEET = 5.5;
 const METERS_PER_FOOT = 0.3048; // International standard
