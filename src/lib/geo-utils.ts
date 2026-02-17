@@ -8,59 +8,54 @@ const WGS84 = "EPSG:4326";
 
 export type CRS = 'UTM42N' | 'UTM43N';
 
-// Conversion Constants (Standard: 1 Karam = 5.5 Feet)
+// Patwari Standards (Standard: 1 Karam = 5.5 Feet)
 const KARAM_TO_FEET = 5.5;
-const MARLA_TO_SQ_FT = 272.25; // Standard Marla
-const SQ_METER_TO_SQ_FT = 10.7639;
-
-export interface Dimension {
-  point: [number, number]; // [lng, lat]
-  lengthMeters: number;
-  label: string;
-}
-
-export interface KhasraStats {
-  areaSqFt: number;
-  totalMarlas: number;
-  kanals: number;
-  marlas: number;
-  label: string;
-}
+const METERS_PER_FOOT = 0.3048; // International standard
+const METERS_PER_KARAM = KARAM_TO_FEET * METERS_PER_FOOT; // 1.6764m
+const SQ_METERS_PER_MARLA = 9 * Math.pow(METERS_PER_KARAM, 2); // 25.29285264m²
 
 /**
  * Formats a distance in meters into "Xk - Yft" (Karam and Feet).
- * 1 Karam = 5.5 Feet.
+ * 1 Karam = 5.5 Feet (1.6764 Meters).
  */
 export function formatKaramFeet(meters: number): string {
-  const feet = meters * 3.28084;
-  const karams = Math.floor(feet / KARAM_TO_FEET);
-  const remainingFeet = feet - (karams * KARAM_TO_FEET);
+  const karams = Math.floor(meters / METERS_PER_KARAM + 0.001); // Float epsilon
+  const remainingMeters = meters - (karams * METERS_PER_KARAM);
+  const remainingFeet = remainingMeters / METERS_PER_FOOT;
+
+  const roundedFeet = Math.round(remainingFeet * 10) / 10;
 
   if (karams > 0) {
-    return `${karams}k - ${remainingFeet.toFixed(1)}ft`;
+    if (roundedFeet >= 0.1) {
+      return `${karams}k - ${roundedFeet.toFixed(1)}ft`;
+    }
+    return `${karams}k`;
   }
-  return `${remainingFeet.toFixed(1)}ft`;
+  return `${roundedFeet.toFixed(1)}ft`;
 }
 
 /**
  * Converts area in square meters (projected) to Kanal-Marla units.
- * 1 Sq Karam = 30.25 Sq Ft
- * 1 Marla = 272.25 Sq Ft
+ * 1 Marla = 9 Sq Karams
  * 1 Kanal = 20 Marlas
  */
 export function calculateKanalMarla(areaSqMeters: number): KhasraStats {
-  // Use accurate projected area conversion
-  const areaSqFt = areaSqMeters * SQ_METER_TO_SQ_FT;
-  const totalMarlas = areaSqFt / MARLA_TO_SQ_FT;
-
-  const kanals = Math.floor(totalMarlas / 20);
+  const totalMarlas = areaSqMeters / SQ_METERS_PER_MARLA;
+  const kanals = Math.floor(totalMarlas / 20 + 0.0001);
   const remainingMarlas = totalMarlas - (kanals * 20);
+
+  const roundedMarlas = Math.round(remainingMarlas * 100) / 100;
+  const areaSqFt = areaSqMeters * (1 / Math.pow(METERS_PER_FOOT, 2));
 
   let label = '';
   if (kanals > 0) {
-    label = `${kanals} K - ${remainingMarlas.toFixed(2)} M`;
+    if (roundedMarlas >= 0.01) {
+      label = `${kanals} K - ${roundedMarlas.toFixed(2)} M`;
+    } else {
+      label = `${kanals} Kanal`;
+    }
   } else {
-    label = `${remainingMarlas.toFixed(2)} Marla`;
+    label = `${roundedMarlas.toFixed(2)} Marla`;
   }
 
   return {
