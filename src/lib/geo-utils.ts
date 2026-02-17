@@ -8,6 +8,11 @@ const WGS84 = "EPSG:4326";
 
 export type CRS = 'UTM42N' | 'UTM43N';
 
+// Conversion Constants (Standard: 1 Karam = 5.5 Feet)
+const KARAM_TO_FEET = 5.5;
+const MARLA_TO_SQ_FT = 272.25; // Standard Marla
+const SQ_METER_TO_SQ_FT = 10.7639;
+
 export interface Dimension {
   point: [number, number]; // [lng, lat]
   lengthMeters: number;
@@ -28,8 +33,8 @@ export interface KhasraStats {
  */
 export function formatKaramFeet(meters: number): string {
   const feet = meters * 3.28084;
-  const karams = Math.floor(feet / 5.5);
-  const remainingFeet = feet - (karams * 5.5);
+  const karams = Math.floor(feet / KARAM_TO_FEET);
+  const remainingFeet = feet - (karams * KARAM_TO_FEET);
 
   if (karams > 0) {
     return `${karams}k - ${remainingFeet.toFixed(1)}ft`;
@@ -45,8 +50,8 @@ export function formatKaramFeet(meters: number): string {
  */
 export function calculateKanalMarla(areaSqMeters: number): KhasraStats {
   // Use accurate projected area conversion
-  const areaSqFt = areaSqMeters * 10.7639;
-  const totalMarlas = areaSqFt / 272.25;
+  const areaSqFt = areaSqMeters * SQ_METER_TO_SQ_FT;
+  const totalMarlas = areaSqFt / MARLA_TO_SQ_FT;
 
   const kanals = Math.floor(totalMarlas / 20);
   const remainingMarlas = totalMarlas - (kanals * 20);

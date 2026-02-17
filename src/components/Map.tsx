@@ -39,6 +39,115 @@ interface MapProps {
     onSelect: (id: string) => void;
 }
 
+/**
+ * Enhanced Marker rendering that prevents overlapping labels based on screen pixel space.
+ */
+function CollisionManagedMarkers({ data, selectedPolyIds, labelField }: {
+    data: MapData | null,
+    selectedPolyIds: string[],
+    labelField: string
+}) {
+    const map = useMap();
+    const [visibleMarkers, setVisibleMarkers] = React.useState<React.ReactNode[]>([]);
+
+    const calculateCollision = React.useCallback(() => {
+        if (!data || selectedPolyIds.length === 0) {
+            setVisibleMarkers([]);
+            return;
+        }
+
+        const collisionBuffers: { x1: number, y1: number, x2: number, y2: number }[] = [];
+        const newMarkers: React.ReactNode[] = [];
+
+        const isOverlapping = (box: { x1: number, y1: number, x2: number, y2: number }) => {
+            return collisionBuffers.some(target => {
+                return !(box.x2 < target.x1 ||
+                    box.x1 > target.x2 ||
+                    box.y2 < target.y1 ||
+                    box.y1 > target.y2);
+            });
+        };
+
+        const getLabelIcon = (text: string, isMain: boolean = false) => L.divIcon({
+            className: 'custom-div-icon',
+            html: `
+        <div class="flex flex-col items-center pointer-events-none">
+          <span class="${isMain
+                    ? 'px-2 py-0.5 bg-red-600/90 text-white font-bold text-xs ring-1 ring-white/20'
+                    : 'px-1 py-0 bg-black/70 border border-white/20 text-slate-200 text-[9px] font-medium'} rounded shadow-lg whitespace-nowrap backdrop-blur-[2px]">
+            ${text}
+          </span>
+        </div>
+      `,
+            iconSize: L.point(0, 0),
+        });
+
+        const selectedPolys = data.polygons.filter(p => selectedPolyIds.includes(p.id));
+
+        // Priority 1: Main Labels
+        selectedPolys.forEach(poly => {
+            const point = map.latLngToContainerPoint(L.latLng(poly.center[0], poly.center[1]));
+            const text = `${poly.feature.properties[labelField] || ''} | ${poly.stats?.label || ''}`;
+            const width = text.length * 7 + 10;
+            const height = 24;
+
+            const box = {
+                x1: point.x - width / 2,
+                y1: point.y - height / 2,
+                x2: point.x + width / 2,
+                y2: point.y + height / 2
+            };
+
+            if (!isOverlapping(box)) {
+                collisionBuffers.push(box);
+                newMarkers.push(
+                    <Marker key={`main-${poly.id}`} position={poly.center} icon={getLabelIcon(text, true)} />
+                );
+            }
+        });
+
+        // Priority 2: Dimension Labels
+        selectedPolys.forEach(poly => {
+            poly.dimensions?.forEach((dim, dIdx) => {
+                const point = map.latLngToContainerPoint(L.latLng(dim.point[1], dim.point[0]));
+                const text = dim.label;
+                const width = text.length * 6 + 6;
+                const height = 16;
+
+                const box = {
+                    x1: point.x - width / 2,
+                    y1: point.y - height / 2,
+                    x2: point.x + width / 2,
+                    y2: point.y + height / 2
+                };
+
+                if (!isOverlapping(box)) {
+                    collisionBuffers.push(box);
+                    newMarkers.push(
+                        <Marker
+                            key={`dim-${poly.id}-${dIdx}`}
+                            position={[dim.point[1], dim.point[0]]}
+                            icon={getLabelIcon(text)}
+                        />
+                    );
+                }
+            });
+        });
+
+        setVisibleMarkers(newMarkers);
+    }, [data, selectedPolyIds, labelField, map]);
+
+    useEffect(() => {
+        calculateCollision();
+        map.on('zoomend moveend', calculateCollision);
+        return () => {
+            map.off('zoomend moveend', calculateCollision);
+        };
+    }, [calculateCollision, map]);
+
+    return <>{visibleMarkers}</>;
+}
+
 export default function Map({ data, selectedPolyIds, labelField, baseLayer, fileVersion, onSelect }: MapProps) {
     useEffect(() => {
         fixLeafletIcon();
@@ -73,20 +182,6 @@ export default function Map({ data, selectedPolyIds, labelField, baseLayer, file
         });
     };
 
-    const labelIcon = (text: string, isMain: boolean = false) => L.divIcon({
-        className: 'custom-div-icon',
-        html: `
-      <div class="flex flex-col items-center pointer-events-none">
-        <span class="${isMain
-                ? 'px-2 py-0.5 bg-red-600/90 text-white font-bold text-xs ring-1 ring-white/20'
-                : 'px-1 py-0 bg-black/70 border border-white/20 text-slate-200 text-[9px] font-medium'} rounded shadow-lg whitespace-nowrap backdrop-blur-[2px]">
-          ${text}
-        </span>
-      </div>
-    `,
-        iconSize: L.point(0, 0),
-    });
-
     const tileUrl = baseLayer === 'satellite'
         ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
         : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
@@ -119,25 +214,11 @@ export default function Map({ data, selectedPolyIds, labelField, baseLayer, file
                 />
             )}
 
-            {data?.polygons.filter(p => selectedPolyIds.includes(p.id)).map((poly) => (
-                <React.Fragment key={poly.id}>
-                    {/* Main Label: Area + Custom Field */}
-                    <Marker
-                        position={poly.center}
-                        icon={labelIcon(`${poly.feature.properties[labelField] || ''} | ${poly.stats?.label || ''}`, true)}
-                    />
-
-                    {/* Side Dimensions at Midpoints - Only show if not too many segments or zoomed in? */}
-                    {/* Or just make them smaller as we did */}
-                    {poly.dimensions?.map((dim, dIdx) => (
-                        <Marker
-                            key={`${poly.id}-dim-${dIdx}`}
-                            position={[dim.point[1], dim.point[0]]}
-                            icon={labelIcon(dim.label)}
-                        />
-                    ))}
-                </React.Fragment>
-            ))}
+            <CollisionManagedMarkers
+                data={data}
+                selectedPolyIds={selectedPolyIds}
+                labelField={labelField}
+            />
 
             <MapResizer data={data} fileVersion={fileVersion} />
 
