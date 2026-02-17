@@ -156,12 +156,33 @@ export default function Dashboard() {
                     >
                         Reset
                     </button>
-                    <a
-                        href="#"
-                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-medium transition-all"
-                    >
-                        Vercel Deployment
-                    </a>
+                    <div className="flex items-center gap-3 pl-4 border-l border-slate-800">
+                        <span className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Dev</span>
+                        <span className="text-sm font-bold text-slate-200">Sidd</span>
+
+                        <div className="flex items-center gap-2 ml-2">
+                            <a
+                                href="https://www.upwork.com/freelancers/~01e0473f622c19db44"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 bg-slate-800 hover:bg-green-600/20 hover:text-green-500 rounded-lg transition-all group"
+                                title="Hire on Upwork"
+                            >
+                                <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                                    <path d="M18.561 3.29c-2.334 0-4.232 1.898-4.232 4.232v4.062c0 .285-.231.516-.516.516s-.516-.231-.516-.516V7.522c0-2.334-1.898-4.232-4.232-4.232S4.833 5.188 4.833 7.522v5.72c0 .285-.231.516-.516.516s-.516-.231-.516-.516V7.522c0-3.15 2.553-5.703 5.703-5.703a5.703 5.703 0 015.703 5.703v1.891c0 .285.231.516.516.516s.516-.231.516-.516V7.522c0-2.334 1.898-4.232 4.232-4.232s4.232 1.898 4.232 4.232v4.062c0 .285-.231.516-.516.516s-.516-.231-.516-.516V7.522c0-1.442-1.168-2.61-2.61-2.61z" />
+                                </svg>
+                            </a>
+                            <a
+                                href="https://www.linkedin.com/in/siddique-akbar-436a651b7/?skipRedirect=true"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 bg-slate-800 hover:bg-blue-600/20 hover:text-blue-400 rounded-lg transition-all group"
+                                title="Suggestions & Feedback"
+                            >
+                                <Linkedin className="w-4 h-4" />
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </header>
 
