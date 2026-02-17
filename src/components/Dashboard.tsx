@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import FileUploader from './FileUploader';
 import { calculateKanalMarla, calculateDimensions, calculateProjectedArea, KhasraStats, Dimension, CRS } from '@/lib/geo-utils';
 import * as turf from '@turf/turf';
-import { Layers, Map as MapIcon, Table, Info, Globe, Linkedin } from 'lucide-react';
+import { Layers, Map as MapIcon, Table, Info, Globe, Linkedin, MessageSquare } from 'lucide-react';
 
 const Map = dynamic<any>(() => import('./Map'), {
     ssr: false,
@@ -156,27 +156,28 @@ export default function Dashboard() {
                     >
                         Reset
                     </button>
-                    <div className="flex items-center gap-3 pl-4 border-l border-slate-800">
-                        <span className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Dev</span>
-                        <span className="text-sm font-bold text-slate-200">Sidd</span>
+                    <div className="flex items-center gap-4 pl-4 border-l border-slate-800">
+                        <div className="flex flex-col">
+                            <span className="text-[9px] uppercase font-bold text-slate-500 tracking-[0.2em] leading-tight">Developer</span>
+                            <span className="text-sm font-extrabold text-white tracking-tight">Siddique Akbar</span>
+                        </div>
 
-                        <div className="flex items-center gap-2 ml-2">
+                        <div className="flex items-center gap-2">
                             <a
                                 href="https://www.upwork.com/freelancers/~01e0473f622c19db44"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-2 bg-slate-800 hover:bg-green-600/20 hover:text-green-500 rounded-lg transition-all group"
-                                title="Hire on Upwork"
+                                className="flex items-center gap-2 px-3 py-2 bg-green-600/10 hover:bg-green-600/20 text-green-500 rounded-lg transition-all border border-green-600/20 group"
+                                title="Discuss your requirements with me"
                             >
-                                <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                                    <path d="M18.561 3.29c-2.334 0-4.232 1.898-4.232 4.232v4.062c0 .285-.231.516-.516.516s-.516-.231-.516-.516V7.522c0-2.334-1.898-4.232-4.232-4.232S4.833 5.188 4.833 7.522v5.72c0 .285-.231.516-.516.516s-.516-.231-.516-.516V7.522c0-3.15 2.553-5.703 5.703-5.703a5.703 5.703 0 015.703 5.703v1.891c0 .285.231.516.516.516s.516-.231.516-.516V7.522c0-2.334 1.898-4.232 4.232-4.232s4.232 1.898 4.232 4.232v4.062c0 .285-.231.516-.516.516s-.516-.231-.516-.516V7.522c0-1.442-1.168-2.61-2.61-2.61z" />
-                                </svg>
+                                <MessageSquare className="w-4 h-4" />
+                                <span className="text-xs font-bold whitespace-nowrap">Discuss Requirements</span>
                             </a>
                             <a
                                 href="https://www.linkedin.com/in/siddique-akbar-436a651b7/?skipRedirect=true"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-2 bg-slate-800 hover:bg-blue-600/20 hover:text-blue-400 rounded-lg transition-all group"
+                                className="p-2 bg-slate-800 hover:bg-blue-600/20 hover:text-blue-400 rounded-lg transition-all border border-slate-700"
                                 title="Suggestions & Feedback"
                             >
                                 <Linkedin className="w-4 h-4" />
@@ -251,6 +252,13 @@ export default function Dashboard() {
                                 </button>
                             </div>
                         )}
+
+                        {/* Sidebar Footer Credit */}
+                        <div className="mt-auto pt-6 pb-2 text-center border-t border-slate-800/50">
+                            <p className="text-[10px] text-slate-500 font-medium tracking-tight">
+                                Developed with precision by <span className="text-slate-300 font-bold">Siddique Akbar</span>
+                            </p>
+                        </div>
                     </div>
                 </aside>
 
