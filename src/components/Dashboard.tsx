@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import FileUploader from './FileUploader';
 import { calculateKanalMarla, calculateDimensions, calculateProjectedArea, KhasraStats, Dimension, CRS } from '@/lib/geo-utils';
 import * as turf from '@turf/turf';
-import { Layers, Map as MapIcon, Table, Info, Globe } from 'lucide-react';
+import { Layers, Map as MapIcon, Table, Info, Globe, Linkedin } from 'lucide-react';
 
 const Map = dynamic<any>(() => import('./Map'), {
     ssr: false,
