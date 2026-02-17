@@ -34,21 +34,22 @@ interface MapProps {
     data: MapData | null;
     selectedPolyIds: string[];
     labelField: string;
+    baseLayer: 'satellite' | 'dark';
     fileVersion: number;
     onSelect: (id: string) => void;
 }
 
-export default function Map({ data, selectedPolyIds, labelField, fileVersion, onSelect }: MapProps) {
+export default function Map({ data, selectedPolyIds, labelField, baseLayer, fileVersion, onSelect }: MapProps) {
     useEffect(() => {
         fixLeafletIcon();
     }, []);
 
     const polygonStyle = (isSelected: boolean) => ({
         fillColor: isSelected ? '#ef4444' : '#334155',
-        weight: isSelected ? 3 : 1,
+        weight: isSelected ? 3 : 1.5,
         opacity: 1,
-        color: isSelected ? '#ef4444' : '#475569',
-        fillOpacity: isSelected ? 0.3 : 0.05,
+        color: isSelected ? '#ef4444' : '#64748b',
+        fillOpacity: isSelected ? 0.35 : 0.05,
     });
 
     const onEachFeature = (feature: any, layer: L.Layer) => {
@@ -67,7 +68,7 @@ export default function Map({ data, selectedPolyIds, labelField, fileVersion, on
             mouseout: (e: any) => {
                 const layer = e.target;
                 const isSelected = selectedPolyIds.includes(data?.polygons.find(p => p.feature === feature)?.id || '');
-                layer.setStyle({ fillOpacity: isSelected ? 0.3 : 0.05 });
+                layer.setStyle({ fillOpacity: isSelected ? 0.35 : 0.05 });
             }
         });
     };
@@ -75,8 +76,10 @@ export default function Map({ data, selectedPolyIds, labelField, fileVersion, on
     const labelIcon = (text: string, isMain: boolean = false) => L.divIcon({
         className: 'custom-div-icon',
         html: `
-      <div class="flex flex-col items-center">
-        <span class="${isMain ? 'px-2 py-1 bg-red-600 text-white font-bold' : 'px-1.5 py-0.5 bg-slate-900 border border-slate-700 text-slate-300 text-[10px]'} rounded shadow-xl whitespace-nowrap">
+      <div class="flex flex-col items-center pointer-events-none">
+        <span class="${isMain
+                ? 'px-2 py-0.5 bg-red-600/90 text-white font-bold text-xs ring-1 ring-white/20'
+                : 'px-1 py-0 bg-black/70 border border-white/20 text-slate-200 text-[9px] font-medium'} rounded shadow-lg whitespace-nowrap backdrop-blur-[2px]">
           ${text}
         </span>
       </div>
@@ -84,21 +87,29 @@ export default function Map({ data, selectedPolyIds, labelField, fileVersion, on
         iconSize: L.point(0, 0),
     });
 
+    const tileUrl = baseLayer === 'satellite'
+        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+    const filterClass = baseLayer === 'dark' ? 'grayscale-[0.5] invert-[0.85] hue-rotate-[180deg]' : '';
+
     return (
         <MapContainer
-            center={[31.5204, 74.3587]} // Default to Lahore
+            center={[31.5204, 74.3587]}
             zoom={13}
-            className="w-full h-full grayscale-[0.5] invert-[0.85] hue-rotate-[180deg]"
+            className="w-full h-full bg-[#0a0a0a]"
             zoomControl={false}
         >
-            <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            />
+            <div className={filterClass}>
+                <TileLayer
+                    url={tileUrl}
+                    attribution={baseLayer === 'satellite' ? 'Esri &copy; OpenStreetMap' : '&copy; OpenStreetMap'}
+                />
+            </div>
 
             {data?.geojson && (
                 <GeoJSON
-                    key={`geojson-${fileVersion}-${selectedPolyIds.length}`} // Key change triggers update
+                    key={`geojson-${fileVersion}-${selectedPolyIds.length}-${baseLayer}`}
                     data={data.geojson}
                     style={(feature) => {
                         const poly = data.polygons.find(p => p.feature === feature);
@@ -116,7 +127,8 @@ export default function Map({ data, selectedPolyIds, labelField, fileVersion, on
                         icon={labelIcon(`${poly.feature.properties[labelField] || ''} | ${poly.stats?.label || ''}`, true)}
                     />
 
-                    {/* Side Dimensions at Midpoints */}
+                    {/* Side Dimensions at Midpoints - Only show if not too many segments or zoomed in? */}
+                    {/* Or just make them smaller as we did */}
                     {poly.dimensions?.map((dim, dIdx) => (
                         <Marker
                             key={`${poly.id}-dim-${dIdx}`}

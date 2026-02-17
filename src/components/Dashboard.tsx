@@ -12,6 +12,8 @@ const Map = dynamic<any>(() => import('./Map'), {
     loading: () => <div className="w-full h-full bg-slate-900 flex items-center justify-center text-white font-medium">Initializing Map...</div>
 });
 
+export type BaseLayer = 'satellite' | 'dark';
+
 export interface KhasraData {
     id: string;
     feature: any;
@@ -31,6 +33,7 @@ export default function Dashboard() {
     const [selectedPolyIds, setSelectedPolyIds] = useState<string[]>([]);
     const [labelField, setLabelField] = useState<string>('');
     const [selectedCRS, setSelectedCRS] = useState<CRS>('UTM42N');
+    const [baseLayer, setBaseLayer] = useState<BaseLayer>('dark');
     const [isProcessing, setIsProcessing] = useState(false);
     const [fileVersion, setFileVersion] = useState(0);
 
@@ -118,6 +121,21 @@ export default function Dashboard() {
                     <h1 className="text-xl font-bold tracking-tight">Khasra Dimension <span className="text-red-500">Tool</span></h1>
                 </div>
                 <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2 bg-slate-800/80 rounded-lg p-1 border border-slate-700">
+                        <button
+                            onClick={() => setBaseLayer('dark')}
+                            className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${baseLayer === 'dark' ? 'bg-slate-900 text-red-500 shadow-inner' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            Dark
+                        </button>
+                        <button
+                            onClick={() => setBaseLayer('satellite')}
+                            className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${baseLayer === 'satellite' ? 'bg-slate-900 text-red-500 shadow-inner' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            Satellite
+                        </button>
+                    </div>
+
                     <div className="flex items-center gap-2 bg-slate-800/80 rounded-lg p-1 border border-slate-700">
                         <div className="pl-2 flex items-center gap-1.5 text-slate-400">
                             <Globe className="w-3.5 h-3.5" />
@@ -231,6 +249,7 @@ export default function Dashboard() {
                             data={mapData}
                             selectedPolyIds={selectedPolyIds}
                             labelField={labelField}
+                            baseLayer={baseLayer}
                             fileVersion={fileVersion}
                             onSelect={handleSelectKhasra}
                         />
