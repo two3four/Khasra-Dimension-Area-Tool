@@ -12,44 +12,60 @@ const Map = dynamic<any>(() => import('./Map'), {
     loading: () => <div className="w-full h-full bg-slate-900 flex items-center justify-center text-white font-medium">Initializing Map...</div>
 });
 
+export interface KhasraData {
+    id: string;
+    feature: any;
+    stats?: KhasraStats;
+    dimensions?: Dimension[];
+    center: [number, number];
+}
+
 export interface MapData {
     geojson: any;
-    polygons: Array<{
-        id: string;
-        stats: KhasraStats;
-        dimensions: Dimension[];
-        center: [number, number];
-    }>;
+    polygons: KhasraData[];
 }
 
 export default function Dashboard() {
     const [mapData, setMapData] = useState<MapData | null>(null);
+    const [selectedPolyId, setSelectedPolyId] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
 
     const handleFileProcessed = (geojson: any) => {
         setIsProcessing(true);
         try {
             const polygons = geojson.features.map((feature: any, index: number) => {
-                // Calculate area using turf (returns sq meters)
-                const area = turf.area(feature);
-                const stats = calculateKanalMarla(area);
-                const dimensions = calculateDimensions(feature);
                 const center = turf.centerOfMass(feature).geometry.coordinates as [number, number];
-
                 return {
                     id: `poly-${index}`,
-                    stats,
-                    dimensions,
+                    feature,
                     center: [center[1], center[0]], // [lat, lng] for Leaflet
                 };
             });
 
             setMapData({ geojson, polygons });
+            setSelectedPolyId(null);
         } catch (error) {
             console.error("Error processing geojson:", error);
             alert("Failed to process spatial data. Please ensure the shapefile is valid.");
         } finally {
             setIsProcessing(false);
+        }
+    };
+
+    const handleSelectKhasra = (id: string) => {
+        setSelectedPolyId(id);
+        if (mapData) {
+            const updatedPolygons = mapData.polygons.map(poly => {
+                if (poly.id === id && (!poly.stats || !poly.dimensions)) {
+                    // Calculate only if not already calculated
+                    const area = turf.area(poly.feature);
+                    const stats = calculateKanalMarla(area);
+                    const dimensions = calculateDimensions(poly.feature);
+                    return { ...poly, stats, dimensions };
+                }
+                return poly;
+            });
+            setMapData(prev => prev ? { ...prev, polygons: updatedPolygons } : null);
         }
     };
 
@@ -96,13 +112,17 @@ export default function Dashboard() {
                                     </h3>
                                     <div className="space-y-3">
                                         {mapData.polygons.map((poly, idx) => (
-                                            <div key={poly.id} className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-red-500/50 transition-all cursor-pointer group">
+                                            <div
+                                                key={poly.id}
+                                                className={`p-4 rounded-xl bg-slate-800/50 border ${selectedPolyId === poly.id ? 'border-red-500' : 'border-slate-700/50'} hover:border-red-500/50 transition-all cursor-pointer group`}
+                                                onClick={() => handleSelectKhasra(poly.id)}
+                                            >
                                                 <div className="flex justify-between items-start mb-2">
                                                     <span className="text-xs font-bold text-red-400">KHASRA #{idx + 1}</span>
-                                                    <span className="text-[10px] text-slate-500">{poly.stats.areaSqFt.toLocaleString()} Sq Ft</span>
+                                                    {poly.stats && <span className="text-[10px] text-slate-500">{poly.stats.areaSqFt.toLocaleString()} Sq Ft</span>}
                                                 </div>
                                                 <div className="text-lg font-bold text-white group-hover:text-red-400 transition-colors">
-                                                    {poly.stats.label}
+                                                    {poly.stats ? poly.stats.label : 'Click to view details'}
                                                 </div>
                                             </div>
                                         ))}
@@ -136,7 +156,11 @@ export default function Dashboard() {
                     )}
                     <div className="w-full h-full relative">
                         {/* @ts-ignore */}
-                        <Map data={mapData} />
+                        <Map
+                            data={mapData}
+                            selectedPolyId={selectedPolyId}
+                            onSelect={handleSelectKhasra}
+                        />
                     </div>
                 </section>
             </main>

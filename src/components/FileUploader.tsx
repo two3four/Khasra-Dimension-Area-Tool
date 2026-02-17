@@ -12,31 +12,58 @@ export default function FileUploader({ onProcessed }: FileUploaderProps) {
     const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
     const [fileName, setFileName] = useState<string | null>(null);
 
-    const processFile = async (file: File) => {
-        if (!file.name.endsWith('.zip')) {
-            alert('Please upload a .zip file containing the shapefile components.');
+    const processFiles = async (files: FileList | File[]) => {
+        const fileList = Array.from(files);
+        const zipFile = fileList.find(f => f.name.endsWith('.zip'));
+
+        if (zipFile) {
+            setFileName(zipFile.name);
+            setStatus('processing');
+            try {
+                const buffer = await zipFile.arrayBuffer();
+                const geojson = await shp(buffer);
+                setStatus('success');
+                onProcessed(geojson);
+            } catch (error) {
+                console.error('Zip parsing error:', error);
+                setStatus('error');
+            }
             return;
         }
 
-        setFileName(file.name);
+        // Handle individual files
+        const shpFile = fileList.find(f => f.name.endsWith('.shp'));
+        const dbfFile = fileList.find(f => f.name.endsWith('.dbf'));
+
+        if (!shpFile) {
+            alert('Please upload at least a .shp file (and ideally .dbf and .shx).');
+            return;
+        }
+
+        setFileName(`${shpFile.name} (+ ${fileList.length - 1} files)`);
         setStatus('processing');
 
         try {
-            const buffer = await file.arrayBuffer();
-            // shpjs automatically parses the zip and returns GeoJSON
-            const geojson = await shp(buffer);
+            const shpBuffer = await shpFile.arrayBuffer();
+            const dbfBuffer = dbfFile ? await dbfFile.arrayBuffer() : undefined;
+
+            const geometries = shp.parseShp(shpBuffer);
+            // @ts-ignore - shp.parseDbf usually takes one argument for basic use, types might vary
+            const properties = dbfBuffer ? shp.parseDbf(dbfBuffer) : geometries.map(() => ({}));
+            const geojson = shp.combine([geometries, properties]);
+
             setStatus('success');
             onProcessed(geojson);
         } catch (error) {
-            console.error('File parsing error:', error);
+            console.error('Individual file parsing error:', error);
             setStatus('error');
         }
     };
 
     const onDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
-        const file = e.dataTransfer.files[0];
-        if (file) processFile(file);
+        const files = e.dataTransfer.files;
+        if (files.length > 0) processFiles(files);
     }, []);
 
     return (
@@ -53,11 +80,12 @@ export default function FileUploader({ onProcessed }: FileUploaderProps) {
         >
             <input
                 type="file"
-                accept=".zip"
+                multiple
+                accept=".zip,.shp,.dbf,.shx"
                 className="absolute inset-0 opacity-0 cursor-pointer"
                 onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) processFile(file);
+                    const files = e.target.files;
+                    if (files && files.length > 0) processFiles(files);
                 }}
             />
 
@@ -77,13 +105,13 @@ export default function FileUploader({ onProcessed }: FileUploaderProps) {
 
                 <div>
                     <p className="text-sm font-semibold mb-1">
-                        {status === 'idle' && 'Select Zipped Shapefile'}
+                        {status === 'idle' && 'Upload Shapefile Components'}
                         {status === 'processing' && 'Processing Data...'}
                         {status === 'success' && 'Ready to view'}
                         {status === 'error' && 'Error parsing file'}
                     </p>
                     <p className="text-xs text-slate-500">
-                        {fileName || 'Drop .zip or browse local files'}
+                        {fileName || 'Drop .shp, .dbf, .shx (or .zip)'}
                     </p>
                 </div>
             </div>
