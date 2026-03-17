@@ -34,7 +34,8 @@ const SQ_METERS_PER_MARLA = 9 * Math.pow(METERS_PER_KARAM, 2); // 25.29285264m²
  */
 export function formatKaramFeet(meters: number): string {
   const totalFeet = meters / METERS_PER_FOOT;
-  return `${totalFeet.toFixed(1)} ft`;
+  const totalKarams = totalFeet / KARAM_TO_FEET;
+  return `${totalKarams.toFixed(1)}k - ${totalFeet.toFixed(1)}ft`;
 }
 
 /**
