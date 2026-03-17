@@ -30,12 +30,31 @@ function MapResizer({ data, fileVersion }: { data: MapData | null, fileVersion: 
     return null;
 }
 
+function ZoomToSinglePolygon({ data, selectedPolyIds, isExporting }: { data: MapData | null, selectedPolyIds: string[], isExporting: boolean }) {
+    const map = useMap();
+    useEffect(() => {
+        if (isExporting && selectedPolyIds.length === 1 && data?.geojson) {
+            const singlePolyFeature = data.polygons.find(p => p.id === selectedPolyIds[0])?.feature;
+            if (singlePolyFeature) {
+                const layer = L.geoJSON(singlePolyFeature);
+                const bounds = layer.getBounds();
+                if (bounds.isValid()) {
+                    // Zoom slightly tighter for screenshots and animate slowly
+                    map.fitBounds(bounds, { padding: [100, 100], animate: false });
+                }
+            }
+        }
+    }, [selectedPolyIds, isExporting, data, map]);
+    return null;
+}
+
 interface MapProps {
     data: MapData | null;
     selectedPolyIds: string[];
     labelField: string;
     baseLayer: 'satellite' | 'dark';
     fileVersion: number;
+    isExporting: boolean;
     onSelect: (id: string) => void;
 }
 
@@ -174,17 +193,17 @@ function CollisionManagedMarkers({ data, selectedPolyIds, labelField }: {
     return <>{visibleMarkers}</>;
 }
 
-export default function Map({ data, selectedPolyIds, labelField, baseLayer, fileVersion, onSelect }: MapProps) {
+export default function Map({ data, selectedPolyIds, labelField, baseLayer, fileVersion, isExporting, onSelect }: MapProps) {
     useEffect(() => {
         fixLeafletIcon();
     }, []);
 
     const polygonStyle = (isSelected: boolean) => ({
-        fillColor: isSelected ? '#ef4444' : '#334155',
-        weight: isSelected ? 3 : 1.5,
+        fillColor: isSelected ? '#ef4444' : '#fbbf24',
+        weight: isSelected ? 3 : 2,
         opacity: 1,
-        color: isSelected ? '#ef4444' : '#64748b',
-        fillOpacity: isSelected ? 0.35 : 0.05,
+        color: isSelected ? '#ef4444' : '#fbbf24',
+        fillOpacity: isSelected ? 0.35 : 0.1,
     });
 
     const onEachFeature = (feature: any, layer: L.Layer) => {
@@ -250,6 +269,7 @@ export default function Map({ data, selectedPolyIds, labelField, baseLayer, file
             />
 
             <MapResizer data={data} fileVersion={fileVersion} />
+            <ZoomToSinglePolygon data={data} selectedPolyIds={selectedPolyIds} isExporting={isExporting} />
 
             <style jsx global>{`
         .leaflet-container {

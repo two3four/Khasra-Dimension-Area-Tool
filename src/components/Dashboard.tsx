@@ -36,6 +36,8 @@ export default function Dashboard() {
     const [baseLayer, setBaseLayer] = useState<BaseLayer>('dark');
     const [isProcessing, setIsProcessing] = useState(false);
     const [fileVersion, setFileVersion] = useState(0);
+    const [isExporting, setIsExporting] = useState(false);
+    const [exportProgress, setExportProgress] = useState(0);
 
     const handleFileProcessed = (geojson: any) => {
         setIsProcessing(true);
@@ -109,6 +111,51 @@ export default function Dashboard() {
             });
         }
     }, [selectedCRS]);
+
+    const handleExportImages = async () => {
+        if (!mapData || isExporting) return;
+        setIsExporting(true);
+        setExportProgress(0);
+
+        // Dynamically import html2canvas only when needed
+        const html2canvas = (await import('html2canvas')).default;
+
+        for (let i = 0; i < mapData.polygons.length; i++) {
+            const poly = mapData.polygons[i];
+            const khasraName = poly.feature.properties[labelField] || `Khasra_${i + 1}`;
+            setExportProgress(i + 1);
+
+            // Force calculate stats and select the current poly
+            handleSelectKhasra(poly.id, false);
+            setSelectedPolyIds([poly.id]);
+
+            // Wait for map to pan/zoom, tiles to load, and markers to place
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const mapElement = document.querySelector('.leaflet-container') as HTMLElement | null;
+            if (mapElement) {
+                try {
+                    const canvas = await html2canvas(mapElement, {
+                        useCORS: true,
+                        allowTaint: true,
+                        logging: false,
+                        backgroundColor: null,
+                    });
+                    const link = document.createElement('a');
+                    link.download = `${khasraName}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                } catch (err) {
+                    console.error(`Screenshot failed for ${khasraName}`, err);
+                }
+            }
+        }
+
+        setIsExporting(false);
+        setExportProgress(0);
+        setSelectedPolyIds([]);
+        alert('All available images have been exported!');
+    };
 
     return (
         <div className="flex flex-col h-screen bg-black text-slate-100 overflow-hidden font-sans">
@@ -247,8 +294,12 @@ export default function Dashboard() {
                         {!mapData && <FileUploader onProcessed={handleFileProcessed} />}
                         {mapData && (
                             <div className="flex flex-col gap-2">
-                                <button className="w-full py-3 bg-red-600 hover:bg-red-500 rounded-xl font-bold transition-all shadow-lg shadow-red-900/20">
-                                    Export Report
+                                <button 
+                                    onClick={handleExportImages}
+                                    disabled={isExporting}
+                                    className={`w-full py-3 rounded-xl font-bold transition-all shadow-lg ${isExporting ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-500 shadow-red-900/20 text-white'}`}
+                                >
+                                    {isExporting ? `Exporting (${exportProgress}/${mapData.polygons.length})...` : 'Export Images'}
                                 </button>
                             </div>
                         )}
@@ -280,6 +331,7 @@ export default function Dashboard() {
                             labelField={labelField}
                             baseLayer={baseLayer}
                             fileVersion={fileVersion}
+                            isExporting={isExporting}
                             onSelect={handleSelectKhasra}
                         />
                     </div>
