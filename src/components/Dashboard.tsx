@@ -36,8 +36,6 @@ export default function Dashboard() {
     const [baseLayer, setBaseLayer] = useState<BaseLayer>('dark');
     const [isProcessing, setIsProcessing] = useState(false);
     const [fileVersion, setFileVersion] = useState(0);
-    const [isExporting, setIsExporting] = useState(false);
-    const [exportProgress, setExportProgress] = useState(0);
 
     const handleFileProcessed = (geojson: any) => {
         setIsProcessing(true);
@@ -111,64 +109,6 @@ export default function Dashboard() {
             });
         }
     }, [selectedCRS]);
-
-    const handleExportImages = async () => {
-        if (!mapData || isExporting) return;
-
-        const polysToExport = selectedPolyIds.length > 0 
-            ? mapData.polygons.filter(p => selectedPolyIds.includes(p.id))
-            : [];
-
-        if (polysToExport.length === 0) {
-            alert('Please select at least one Khasra from the list or map to export.');
-            return;
-        }
-
-        setIsExporting(true);
-        setExportProgress(0);
-
-        const originalSelection = [...selectedPolyIds];
-
-        // Dynamically import html2canvas only when needed
-        const html2canvas = (await import('html2canvas')).default;
-
-        for (let i = 0; i < polysToExport.length; i++) {
-            const poly = polysToExport[i];
-            const khasraName = poly.feature.properties[labelField] || `Khasra_${i + 1}`;
-            setExportProgress(i + 1);
-
-            // Force calculate stats and select the current poly
-            handleSelectKhasra(poly.id, false);
-            setSelectedPolyIds([poly.id]);
-
-            // Wait for map to pan/zoom, tiles to load, and markers to place
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            const mapElement = document.querySelector('.leaflet-container') as HTMLElement | null;
-            if (mapElement) {
-                try {
-                    const canvas = await html2canvas(mapElement, {
-                        useCORS: true,
-                        logging: false,
-                        backgroundColor: null,
-                    });
-                    const link = document.createElement('a');
-                    link.download = `${khasraName}.png`;
-                    link.href = canvas.toDataURL('image/png');
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                } catch (err) {
-                    console.error(`Screenshot failed for ${khasraName}`, err);
-                }
-            }
-        }
-
-        setIsExporting(false);
-        setExportProgress(0);
-        setSelectedPolyIds(originalSelection);
-        alert('Selected images have been exported!');
-    };
 
     return (
         <div className="flex flex-col h-screen bg-black text-slate-100 overflow-hidden font-sans">
@@ -305,18 +245,6 @@ export default function Dashboard() {
 
                     <div className="p-6 border-t border-slate-800">
                         {!mapData && <FileUploader onProcessed={handleFileProcessed} />}
-                        {mapData && (
-                            <div className="flex flex-col gap-2">
-                                <button 
-                                    onClick={handleExportImages}
-                                    disabled={isExporting || selectedPolyIds.length === 0}
-                                    className={`w-full py-3 rounded-xl font-bold transition-all shadow-lg ${(isExporting || selectedPolyIds.length === 0) ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-500 shadow-red-900/20 text-white'}`}
-                                >
-                                    {isExporting ? `Exporting (${exportProgress}/${selectedPolyIds.length})...` : 
-                                        selectedPolyIds.length > 0 ? `Export Selected (${selectedPolyIds.length})` : 'Select Khasras to Export'}
-                                </button>
-                            </div>
-                        )}
 
                         {/* Sidebar Footer Credit */}
                         <div className="mt-auto pt-6 pb-2 text-center border-t border-slate-800/50">
@@ -345,7 +273,6 @@ export default function Dashboard() {
                             labelField={labelField}
                             baseLayer={baseLayer}
                             fileVersion={fileVersion}
-                            isExporting={isExporting}
                             onSelect={handleSelectKhasra}
                         />
                     </div>

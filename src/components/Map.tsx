@@ -30,23 +30,7 @@ function MapResizer({ data, fileVersion }: { data: MapData | null, fileVersion: 
     return null;
 }
 
-function ZoomToSinglePolygon({ data, selectedPolyIds, isExporting }: { data: MapData | null, selectedPolyIds: string[], isExporting: boolean }) {
-    const map = useMap();
-    useEffect(() => {
-        if (isExporting && selectedPolyIds.length === 1 && data?.geojson) {
-            const singlePolyFeature = data.polygons.find(p => p.id === selectedPolyIds[0])?.feature;
-            if (singlePolyFeature) {
-                const layer = L.geoJSON(singlePolyFeature);
-                const bounds = layer.getBounds();
-                if (bounds.isValid()) {
-                    // Zoom slightly tighter for screenshots and animate slowly
-                    map.fitBounds(bounds, { padding: [100, 100], animate: false });
-                }
-            }
-        }
-    }, [selectedPolyIds, isExporting, data, map]);
-    return null;
-}
+
 
 interface MapProps {
     data: MapData | null;
@@ -54,7 +38,6 @@ interface MapProps {
     labelField: string;
     baseLayer: 'satellite' | 'dark';
     fileVersion: number;
-    isExporting: boolean;
     onSelect: (id: string) => void;
 }
 
@@ -193,7 +176,7 @@ function CollisionManagedMarkers({ data, selectedPolyIds, labelField }: {
     return <>{visibleMarkers}</>;
 }
 
-export default function Map({ data, selectedPolyIds, labelField, baseLayer, fileVersion, isExporting, onSelect }: MapProps) {
+export default function Map({ data, selectedPolyIds, labelField, baseLayer, fileVersion, onSelect }: MapProps) {
     useEffect(() => {
         fixLeafletIcon();
     }, []);
@@ -270,7 +253,6 @@ export default function Map({ data, selectedPolyIds, labelField, baseLayer, file
             />
 
             <MapResizer data={data} fileVersion={fileVersion} />
-            <ZoomToSinglePolygon data={data} selectedPolyIds={selectedPolyIds} isExporting={isExporting} />
 
             <style jsx global>{`
         .leaflet-container {
