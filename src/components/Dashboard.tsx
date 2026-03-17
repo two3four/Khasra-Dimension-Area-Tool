@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import FileUploader from './FileUploader';
 import { calculateKanalMarla, calculateDimensions, calculateProjectedArea, KhasraStats, Dimension, CRS } from '@/lib/geo-utils';
 import * as turf from '@turf/turf';
-import { Layers, Map as MapIcon, Table, Info, Globe, Linkedin, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
+import { Layers, Map as MapIcon, Table, Info, Globe, Linkedin, MessageSquare } from 'lucide-react';
 
 const Map = dynamic<any>(() => import('./Map'), {
     ssr: false,
@@ -36,7 +36,6 @@ export default function Dashboard() {
     const [baseLayer, setBaseLayer] = useState<BaseLayer>('dark');
     const [isProcessing, setIsProcessing] = useState(false);
     const [fileVersion, setFileVersion] = useState(0);
-    const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(true);
 
     const handleFileProcessed = (geojson: any) => {
         setIsProcessing(true);
@@ -60,7 +59,6 @@ export default function Dashboard() {
             setMapData({ geojson, polygons, availableFields: fields });
             setSelectedPolyIds([]);
             setFileVersion(v => v + 1);
-            setIsMobilePanelOpen(false); // Hide panel on mobile to reveal map
         } catch (error) {
             console.error("Error processing geojson:", error);
             alert("Failed to process spatial data. Please ensure the shapefile is valid.");
@@ -191,27 +189,14 @@ export default function Dashboard() {
                 </div>
             </header>
 
-            <main className="flex-1 flex overflow-hidden relative">
-
-                {/* Sidebar / Info Panel - Bottom Sheet on Mobile */}
-                <aside className={`absolute md:relative w-full md:w-80 border-t md:border-t-0 md:border-r border-slate-800 bg-slate-900/95 md:bg-slate-900/40 backdrop-blur-2xl md:backdrop-blur-none flex flex-col z-[40] h-[75vh] md:h-full bottom-0 left-0 transition-transform duration-300 ease-in-out shadow-[0_-10px_40px_rgba(0,0,0,0.5)] md:shadow-none ${isMobilePanelOpen ? 'translate-y-0' : 'translate-y-[calc(100%-48px)] md:translate-y-0'}`}>
-                    
-                    {/* Mobile Drag Handle */}
-                    <div 
-                        className="md:hidden w-full h-12 flex justify-center items-center cursor-pointer active:bg-slate-800/50 transition-colors flex-shrink-0"
-                        onClick={() => setIsMobilePanelOpen(!isMobilePanelOpen)}
-                    >
-                        <div className="w-16 h-1.5 bg-slate-500/80 rounded-full" />
-                    </div>
-
-                    <div className="p-4 md:p-6 flex-1 overflow-y-auto custom-scrollbar">
+            <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
+                {/* Sidebar / Info Panel */}
+                <aside className="w-full md:w-80 border-b md:border-b-0 md:border-r border-slate-800 bg-slate-900/30 flex flex-col z-[5] max-h-[40vh] md:max-h-full">
+                    <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
                         {!mapData ? (
-                            <div className="h-full flex flex-col items-center justify-center text-center opacity-90 pb-8">
-                                <Info className="w-10 h-10 mb-4 text-slate-400" />
-                                <p className="text-sm text-slate-300 mb-6">Upload a zipped shapefile to see Khasra details, area in Kanal-Marla and side dimensions.</p>
-                                <div className="w-full max-w-sm">
-                                    <FileUploader onProcessed={handleFileProcessed} />
-                                </div>
+                            <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
+                                <Info className="w-12 h-12 mb-4" />
+                                <p className="text-sm">Upload a zipped shapefile to see Khasra details, area in Kanal-Marla and side dimensions.</p>
                             </div>
                         ) : (
                             <div className="space-y-6">
@@ -260,9 +245,11 @@ export default function Dashboard() {
                         )}
                     </div>
 
-                    <div className="p-4 md:p-6 border-t border-slate-800 mb-6 md:mb-0 mt-auto">
+                    <div className="p-6 border-t border-slate-800">
+                        {!mapData && <FileUploader onProcessed={handleFileProcessed} />}
+
                         {/* Sidebar Footer Credit */}
-                        <div className="pb-2 text-center">
+                        <div className="mt-auto pt-6 pb-2 text-center border-t border-slate-800/50">
                             <p className="text-[10px] text-slate-500 font-medium tracking-tight">
                                 Developed with precision by <span className="text-slate-300 font-bold">Siddique Akbar</span>
                             </p>
