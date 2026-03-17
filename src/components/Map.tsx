@@ -247,6 +247,7 @@ export default function Map({ data, selectedPolyIds, labelField, baseLayer, file
                     maxZoom={24}
                     maxNativeZoom={baseLayer === 'satellite' ? 22 : 19}
                     attribution={baseLayer === 'satellite' ? '&copy; Google Maps' : '&copy; OpenStreetMap'}
+                    crossOrigin="anonymous"
                 />
             </div>
 
