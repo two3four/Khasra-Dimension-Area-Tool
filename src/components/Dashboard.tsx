@@ -149,7 +149,6 @@ export default function Dashboard() {
                 try {
                     const canvas = await html2canvas(mapElement, {
                         useCORS: true,
-                        allowTaint: true,
                         logging: false,
                         backgroundColor: null,
                     });
