@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import FileUploader from './FileUploader';
 import { calculateKanalMarla, calculateDimensions, calculateProjectedArea, KhasraStats, Dimension, CRS } from '@/lib/geo-utils';
 import * as turf from '@turf/turf';
-import { Layers, Map as MapIcon, Table, Info, Globe, Linkedin, MessageSquare } from 'lucide-react';
+import { Layers, Map as MapIcon, Table, Info, Globe, Linkedin, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
 
 const Map = dynamic<any>(() => import('./Map'), {
     ssr: false,
@@ -36,6 +36,7 @@ export default function Dashboard() {
     const [baseLayer, setBaseLayer] = useState<BaseLayer>('dark');
     const [isProcessing, setIsProcessing] = useState(false);
     const [fileVersion, setFileVersion] = useState(0);
+    const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(true);
 
     const handleFileProcessed = (geojson: any) => {
         setIsProcessing(true);
@@ -59,6 +60,7 @@ export default function Dashboard() {
             setMapData({ geojson, polygons, availableFields: fields });
             setSelectedPolyIds([]);
             setFileVersion(v => v + 1);
+            setIsMobilePanelOpen(false); // Hide panel on mobile to reveal map
         } catch (error) {
             console.error("Error processing geojson:", error);
             alert("Failed to process spatial data. Please ensure the shapefile is valid.");
@@ -189,9 +191,20 @@ export default function Dashboard() {
                 </div>
             </header>
 
-            <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
+            <main className="flex-1 flex overflow-hidden relative">
+                {/* Mobile Toggle Button */}
+                <div className={`absolute w-full flex justify-center z-[30] transition-all duration-300 md:hidden ${isMobilePanelOpen ? 'bottom-[62vh]' : 'bottom-6 pointer-events-none'}`}>
+                    <button 
+                        onClick={() => setIsMobilePanelOpen(!isMobilePanelOpen)}
+                        className="bg-slate-900/90 border border-slate-700 backdrop-blur-md text-white px-5 py-2.5 rounded-full font-bold shadow-[0_4px_25px_rgba(0,0,0,0.5)] flex items-center gap-2 pointer-events-auto"
+                    >
+                        {isMobilePanelOpen ? <ChevronDown className="w-4 h-4 text-red-500"/> : <ChevronUp className="w-4 h-4 text-red-500"/>}
+                        {isMobilePanelOpen ? 'Hide Menu' : mapData ? 'Show Menu' : 'Upload Data'}
+                    </button>
+                </div>
+
                 {/* Sidebar / Info Panel */}
-                <aside className="w-full md:w-80 border-b md:border-b-0 md:border-r border-slate-800 bg-slate-900/30 flex flex-col z-[5] max-h-[40vh] md:max-h-full">
+                <aside className={`absolute md:relative w-full md:w-80 border-t md:border-t-0 md:border-r border-slate-800 bg-slate-900/95 md:bg-slate-900/30 backdrop-blur-xl md:backdrop-blur-none flex flex-col z-[20] h-[60vh] md:h-full bottom-0 left-0 transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none ${isMobilePanelOpen ? 'translate-y-0' : 'translate-y-full md:translate-y-0'}`}>
                     <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
                         {!mapData ? (
                             <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
