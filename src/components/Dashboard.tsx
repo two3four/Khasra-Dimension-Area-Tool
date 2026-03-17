@@ -192,20 +192,19 @@ export default function Dashboard() {
             </header>
 
             <main className="flex-1 flex overflow-hidden relative">
-                {/* Mobile Toggle Button */}
-                <div className={`absolute w-full flex justify-center z-[30] transition-all duration-300 md:hidden ${isMobilePanelOpen ? 'bottom-[62vh]' : 'bottom-6 pointer-events-none'}`}>
-                    <button 
-                        onClick={() => setIsMobilePanelOpen(!isMobilePanelOpen)}
-                        className="bg-slate-900/90 border border-slate-700 backdrop-blur-md text-white px-5 py-2.5 rounded-full font-bold shadow-[0_4px_25px_rgba(0,0,0,0.5)] flex items-center gap-2 pointer-events-auto"
-                    >
-                        {isMobilePanelOpen ? <ChevronDown className="w-4 h-4 text-red-500"/> : <ChevronUp className="w-4 h-4 text-red-500"/>}
-                        {isMobilePanelOpen ? 'Hide Menu' : mapData ? 'Show Menu' : 'Upload Data'}
-                    </button>
-                </div>
 
-                {/* Sidebar / Info Panel */}
-                <aside className={`absolute md:relative w-full md:w-80 border-t md:border-t-0 md:border-r border-slate-800 bg-slate-900/95 md:bg-slate-900/30 backdrop-blur-xl md:backdrop-blur-none flex flex-col z-[20] h-[60vh] md:h-full bottom-0 left-0 transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none ${isMobilePanelOpen ? 'translate-y-0' : 'translate-y-full md:translate-y-0'}`}>
-                    <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
+                {/* Sidebar / Info Panel - Bottom Sheet on Mobile */}
+                <aside className={`absolute md:relative w-full md:w-80 border-t md:border-t-0 md:border-r border-slate-800 bg-slate-900/95 md:bg-slate-900/40 backdrop-blur-2xl md:backdrop-blur-none flex flex-col z-[40] h-[75vh] md:h-full bottom-0 left-0 transition-transform duration-300 ease-in-out shadow-[0_-10px_40px_rgba(0,0,0,0.5)] md:shadow-none ${isMobilePanelOpen ? 'translate-y-0' : 'translate-y-[calc(100%-48px)] md:translate-y-0'}`}>
+                    
+                    {/* Mobile Drag Handle */}
+                    <div 
+                        className="md:hidden w-full h-12 flex justify-center items-center cursor-pointer active:bg-slate-800/50 transition-colors flex-shrink-0"
+                        onClick={() => setIsMobilePanelOpen(!isMobilePanelOpen)}
+                    >
+                        <div className="w-16 h-1.5 bg-slate-500/80 rounded-full" />
+                    </div>
+
+                    <div className="p-4 md:p-6 flex-1 overflow-y-auto custom-scrollbar">
                         {!mapData ? (
                             <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
                                 <Info className="w-12 h-12 mb-4" />
@@ -258,7 +257,7 @@ export default function Dashboard() {
                         )}
                     </div>
 
-                    <div className="p-6 border-t border-slate-800">
+                    <div className="p-4 md:p-6 border-t border-slate-800 mb-6 md:mb-0">
                         {!mapData && <FileUploader onProcessed={handleFileProcessed} />}
 
                         {/* Sidebar Footer Credit */}
