@@ -113,38 +113,40 @@ export default function Dashboard() {
     return (
         <div className="flex flex-col h-screen bg-black text-slate-100 overflow-hidden font-sans">
             {/* Header */}
-            <header className="px-6 py-4 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md flex items-center justify-between z-10">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-red-600 rounded-lg">
-                        <Layers className="w-6 h-6 text-white" />
+            <header className="px-4 md:px-6 py-3 md:py-4 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md flex flex-col md:flex-row items-center justify-between z-10 gap-3 md:gap-0">
+                <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-red-600 rounded-lg">
+                            <Layers className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                        </div>
+                        <h1 className="text-lg md:text-xl font-bold tracking-tight">Khasra Dimension <span className="text-red-500">Tool</span></h1>
                     </div>
-                    <h1 className="text-xl font-bold tracking-tight">Khasra Dimension <span className="text-red-500">Tool</span></h1>
                 </div>
-                <div className="flex items-center gap-6">
+                <div className="flex flex-wrap items-center justify-center gap-3 md:gap-6 w-full md:w-auto">
                     <div className="flex items-center gap-2 bg-slate-800/80 rounded-lg p-1 border border-slate-700">
                         <button
                             onClick={() => setBaseLayer('dark')}
-                            className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${baseLayer === 'dark' ? 'bg-slate-900 text-red-500 shadow-inner' : 'text-slate-400 hover:text-white'}`}
+                            className={`px-2 py-1 md:px-3 md:py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${baseLayer === 'dark' ? 'bg-slate-900 text-red-500 shadow-inner' : 'text-slate-400 hover:text-white'}`}
                         >
                             Dark
                         </button>
                         <button
                             onClick={() => setBaseLayer('satellite')}
-                            className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${baseLayer === 'satellite' ? 'bg-slate-900 text-red-500 shadow-inner' : 'text-slate-400 hover:text-white'}`}
+                            className={`px-2 py-1 md:px-3 md:py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${baseLayer === 'satellite' ? 'bg-slate-900 text-red-500 shadow-inner' : 'text-slate-400 hover:text-white'}`}
                         >
                             Satellite
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-2 bg-slate-800/80 rounded-lg p-1 border border-slate-700">
-                        <div className="pl-2 flex items-center gap-1.5 text-slate-400">
-                            <Globe className="w-3.5 h-3.5" />
-                            <span className="text-[10px] font-bold uppercase tracking-wider">Projection</span>
+                    <div className="flex items-center gap-1 md:gap-2 bg-slate-800/80 rounded-lg p-1 border border-slate-700">
+                        <div className="pl-1 md:pl-2 flex items-center gap-1.5 text-slate-400 hidden sm:flex">
+                            <Globe className="w-3 md:w-3.5 h-3 md:h-3.5" />
+                            <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider">Projection</span>
                         </div>
                         <select
                             value={selectedCRS}
                             onChange={(e) => setSelectedCRS(e.target.value as CRS)}
-                            className="bg-slate-900 text-xs font-bold px-3 py-1.5 rounded-md border-none focus:ring-1 focus:ring-red-500 outline-none cursor-pointer"
+                            className="bg-slate-900 text-[10px] md:text-xs font-bold px-2 md:px-3 py-1 md:py-1.5 rounded-md border-none focus:ring-1 focus:ring-red-500 outline-none cursor-pointer"
                         >
                             <option value="UTM42N">UTM Zone 42N</option>
                             <option value="UTM43N">UTM Zone 43N</option>
@@ -152,11 +154,11 @@ export default function Dashboard() {
                     </div>
                     <button
                         onClick={() => setMapData(null)}
-                        className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+                        className="px-2 md:px-4 py-1.5 md:py-2 text-xs md:text-sm font-medium text-slate-400 hover:text-white transition-colors border border-slate-700 md:border-none rounded-lg md:rounded-none"
                     >
                         Reset
                     </button>
-                    <div className="flex items-center gap-4 pl-4 border-l border-slate-800">
+                    <div className="hidden lg:flex items-center gap-4 pl-4 border-l border-slate-800">
                         <div className="flex flex-col">
                             <span className="text-[9px] uppercase font-bold text-slate-500 tracking-[0.2em] leading-tight">Developer</span>
                             <span className="text-sm font-extrabold text-white tracking-tight">Siddique Akbar</span>
@@ -187,9 +189,9 @@ export default function Dashboard() {
                 </div>
             </header>
 
-            <main className="flex-1 flex overflow-hidden">
+            <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
                 {/* Sidebar / Info Panel */}
-                <aside className="w-80 border-r border-slate-800 bg-slate-900/30 flex flex-col">
+                <aside className="w-full md:w-80 border-b md:border-b-0 md:border-r border-slate-800 bg-slate-900/30 flex flex-col z-[5] max-h-[40vh] md:max-h-full">
                     <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
                         {!mapData ? (
                             <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
@@ -259,9 +261,9 @@ export default function Dashboard() {
                 <section className="flex-1 relative bg-slate-950">
                     {!mapData && (
                         <div className="absolute inset-0 flex items-center justify-center z-10">
-                            <div className="max-w-md text-center">
-                                <h2 className="text-3xl font-bold mb-4">Start by uploading your data</h2>
-                                <p className="text-slate-400 mb-8">Drop your .zip shapefile folder containing .shp, .dbf, and .shx files.</p>
+                            <div className="max-w-md text-center px-4">
+                                <h2 className="text-2xl md:text-3xl font-bold mb-4">Start by uploading your data</h2>
+                                <p className="text-slate-400 mb-8 text-sm md:text-base">Drop your .zip shapefile folder containing .shp, .dbf, and .shx files.</p>
                             </div>
                         </div>
                     )}
