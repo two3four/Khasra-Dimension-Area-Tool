@@ -206,9 +206,12 @@ export default function Dashboard() {
 
                     <div className="p-4 md:p-6 flex-1 overflow-y-auto custom-scrollbar">
                         {!mapData ? (
-                            <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
-                                <Info className="w-12 h-12 mb-4" />
-                                <p className="text-sm">Upload a zipped shapefile to see Khasra details, area in Kanal-Marla and side dimensions.</p>
+                            <div className="h-full flex flex-col items-center justify-center text-center opacity-90 pb-8">
+                                <Info className="w-10 h-10 mb-4 text-slate-400" />
+                                <p className="text-sm text-slate-300 mb-6">Upload a zipped shapefile to see Khasra details, area in Kanal-Marla and side dimensions.</p>
+                                <div className="w-full max-w-sm">
+                                    <FileUploader onProcessed={handleFileProcessed} />
+                                </div>
                             </div>
                         ) : (
                             <div className="space-y-6">
@@ -257,11 +260,9 @@ export default function Dashboard() {
                         )}
                     </div>
 
-                    <div className="p-4 md:p-6 border-t border-slate-800 mb-6 md:mb-0">
-                        {!mapData && <FileUploader onProcessed={handleFileProcessed} />}
-
+                    <div className="p-4 md:p-6 border-t border-slate-800 mb-6 md:mb-0 mt-auto">
                         {/* Sidebar Footer Credit */}
-                        <div className="mt-auto pt-6 pb-2 text-center border-t border-slate-800/50">
+                        <div className="pb-2 text-center">
                             <p className="text-[10px] text-slate-500 font-medium tracking-tight">
                                 Developed with precision by <span className="text-slate-300 font-bold">Siddique Akbar</span>
                             </p>
