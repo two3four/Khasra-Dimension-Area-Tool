@@ -114,14 +114,26 @@ export default function Dashboard() {
 
     const handleExportImages = async () => {
         if (!mapData || isExporting) return;
+
+        const polysToExport = selectedPolyIds.length > 0 
+            ? mapData.polygons.filter(p => selectedPolyIds.includes(p.id))
+            : [];
+
+        if (polysToExport.length === 0) {
+            alert('Please select at least one Khasra from the list or map to export.');
+            return;
+        }
+
         setIsExporting(true);
         setExportProgress(0);
+
+        const originalSelection = [...selectedPolyIds];
 
         // Dynamically import html2canvas only when needed
         const html2canvas = (await import('html2canvas')).default;
 
-        for (let i = 0; i < mapData.polygons.length; i++) {
-            const poly = mapData.polygons[i];
+        for (let i = 0; i < polysToExport.length; i++) {
+            const poly = polysToExport[i];
             const khasraName = poly.feature.properties[labelField] || `Khasra_${i + 1}`;
             setExportProgress(i + 1);
 
@@ -153,8 +165,8 @@ export default function Dashboard() {
 
         setIsExporting(false);
         setExportProgress(0);
-        setSelectedPolyIds([]);
-        alert('All available images have been exported!');
+        setSelectedPolyIds(originalSelection);
+        alert('Selected images have been exported!');
     };
 
     return (
@@ -296,10 +308,11 @@ export default function Dashboard() {
                             <div className="flex flex-col gap-2">
                                 <button 
                                     onClick={handleExportImages}
-                                    disabled={isExporting}
-                                    className={`w-full py-3 rounded-xl font-bold transition-all shadow-lg ${isExporting ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-500 shadow-red-900/20 text-white'}`}
+                                    disabled={isExporting || selectedPolyIds.length === 0}
+                                    className={`w-full py-3 rounded-xl font-bold transition-all shadow-lg ${(isExporting || selectedPolyIds.length === 0) ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-500 shadow-red-900/20 text-white'}`}
                                 >
-                                    {isExporting ? `Exporting (${exportProgress}/${mapData.polygons.length})...` : 'Export Images'}
+                                    {isExporting ? `Exporting (${exportProgress}/${selectedPolyIds.length})...` : 
+                                        selectedPolyIds.length > 0 ? `Export Selected (${selectedPolyIds.length})` : 'Select Khasras to Export'}
                                 </button>
                             </div>
                         )}
