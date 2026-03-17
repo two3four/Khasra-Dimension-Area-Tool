@@ -14,6 +14,27 @@ export default function FileUploader({ onProcessed }: FileUploaderProps) {
 
     const processFiles = async (files: FileList | File[]) => {
         const fileList = Array.from(files);
+        
+        const geojsonFile = fileList.find(f => f.name.endsWith('.geojson') || f.name.endsWith('.json'));
+        if (geojsonFile) {
+            setFileName(geojsonFile.name);
+            setStatus('processing');
+            try {
+                const text = await geojsonFile.text();
+                let geojson = JSON.parse(text);
+                // Wrap in FeatureCollection if single feature
+                if (geojson.type === 'Feature') {
+                    geojson = { type: 'FeatureCollection', features: [geojson] };
+                }
+                setStatus('success');
+                onProcessed(geojson);
+            } catch (error) {
+                console.error('GeoJSON parsing error:', error);
+                setStatus('error');
+            }
+            return;
+        }
+
         const zipFile = fileList.find(f => f.name.endsWith('.zip'));
 
         if (zipFile) {
@@ -81,7 +102,7 @@ export default function FileUploader({ onProcessed }: FileUploaderProps) {
             <input
                 type="file"
                 multiple
-                accept=".zip,.shp,.dbf,.shx"
+                accept=".zip,.shp,.dbf,.shx,.geojson,.json"
                 className="absolute inset-0 opacity-0 cursor-pointer"
                 onChange={(e) => {
                     const files = e.target.files;
@@ -111,7 +132,7 @@ export default function FileUploader({ onProcessed }: FileUploaderProps) {
                         {status === 'error' && 'Error parsing file'}
                     </p>
                     <p className="text-xs text-slate-500">
-                        {fileName || 'Drop .shp, .dbf, .shx (or .zip)'}
+                        {fileName || 'Drop .geojson, .shp, .dbf, .shx (or .zip)'}
                     </p>
                 </div>
             </div>

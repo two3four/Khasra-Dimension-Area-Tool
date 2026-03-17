@@ -29,23 +29,12 @@ const METERS_PER_KARAM = KARAM_TO_FEET * METERS_PER_FOOT; // 1.6764m
 const SQ_METERS_PER_MARLA = 9 * Math.pow(METERS_PER_KARAM, 2); // 25.29285264m²
 
 /**
- * Formats a distance in meters into "Xk - Yft" (Karam and Feet).
+ * Formats a distance in meters to total feet.
  * 1 Karam = 5.5 Feet (1.6764 Meters).
  */
 export function formatKaramFeet(meters: number): string {
-  const karams = Math.floor(meters / METERS_PER_KARAM + 0.001); // Float epsilon
-  const remainingMeters = meters - (karams * METERS_PER_KARAM);
-  const remainingFeet = remainingMeters / METERS_PER_FOOT;
-
-  const roundedFeet = Math.round(remainingFeet * 10) / 10;
-
-  if (karams > 0) {
-    if (roundedFeet >= 0.1) {
-      return `${karams}k - ${roundedFeet.toFixed(1)}ft`;
-    }
-    return `${karams}k`;
-  }
-  return `${roundedFeet.toFixed(1)}ft`;
+  const totalFeet = meters / METERS_PER_FOOT;
+  return `${totalFeet.toFixed(1)} ft`;
 }
 
 /**

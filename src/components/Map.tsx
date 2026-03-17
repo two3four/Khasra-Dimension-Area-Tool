@@ -209,7 +209,7 @@ export default function Map({ data, selectedPolyIds, labelField, baseLayer, file
     };
 
     const tileUrl = baseLayer === 'satellite'
-        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+        ? 'http://mt0.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}'
         : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
     const filterClass = baseLayer === 'dark' ? 'grayscale-[0.5] invert-[0.85] hue-rotate-[180deg]' : '';
@@ -226,8 +226,8 @@ export default function Map({ data, selectedPolyIds, labelField, baseLayer, file
                 <TileLayer
                     url={tileUrl}
                     maxZoom={24}
-                    maxNativeZoom={baseLayer === 'satellite' ? 20 : 19}
-                    attribution={baseLayer === 'satellite' ? 'Esri &copy; OpenStreetMap' : '&copy; OpenStreetMap'}
+                    maxNativeZoom={baseLayer === 'satellite' ? 22 : 19}
+                    attribution={baseLayer === 'satellite' ? '&copy; Google Maps' : '&copy; OpenStreetMap'}
                 />
             </div>
 
