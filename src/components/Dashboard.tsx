@@ -156,7 +156,9 @@ export default function Dashboard() {
                     const link = document.createElement('a');
                     link.download = `${khasraName}.png`;
                     link.href = canvas.toDataURL('image/png');
+                    document.body.appendChild(link);
                     link.click();
+                    document.body.removeChild(link);
                 } catch (err) {
                     console.error(`Screenshot failed for ${khasraName}`, err);
                 }
