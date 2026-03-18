@@ -273,22 +273,22 @@ export default function Dashboard() {
 
                 {/* Map Area */}
                 <section className="flex-1 relative bg-slate-950 flex flex-col min-w-0">
-                    {/* Sidebar Toggle Button - Moved to bottom to avoid North Arrow overlap */}
-                    <div className="absolute bottom-8 left-6 z-[2000]">
+                    {/* Sidebar Toggle Button - Moved to top-right to be visible on all devices */}
+                    <div className="absolute top-4 right-4 z-[2005]">
                         <button
                             onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-                            className="p-2.5 bg-red-600 text-white rounded-lg shadow-2xl transition-all duration-300 hover:bg-red-700 hover:scale-105 active:scale-95 flex items-center gap-2 border border-red-500/50"
+                            className="p-2 md:p-2.5 bg-red-600 text-white rounded-lg shadow-2xl transition-all duration-300 hover:bg-red-700 hover:scale-105 active:scale-95 flex items-center gap-2 border border-red-500/50"
                             title={isSidebarVisible ? "Hide side panel" : "Show side panel"}
                         >
                             {isSidebarVisible ? (
                                 <>
-                                    <ChevronLeft size={18} />
-                                    <span className="text-[10px] font-bold uppercase tracking-wider">Hide Side Panel</span>
+                                    <ChevronLeft size={16} className="md:w-[18px] md:h-[18px]" />
+                                    <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider">Hide Side Panel</span>
                                 </>
                             ) : (
                                 <>
-                                    <ChevronRight size={18} />
-                                    <span className="text-[10px] font-bold uppercase tracking-wider">Show Side Panel</span>
+                                    <ChevronRight size={16} className="md:w-[18px] md:h-[18px]" />
+                                    <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider">Show Side Panel</span>
                                 </>
                             )}
                         </button>
