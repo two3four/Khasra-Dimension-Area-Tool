@@ -5,14 +5,14 @@ import dynamic from 'next/dynamic';
 import FileUploader from './FileUploader';
 import { calculateKanalMarla, calculateDimensions, calculateProjectedArea, KhasraStats, Dimension, CRS } from '@/lib/geo-utils';
 import * as turf from '@turf/turf';
-import { Layers, Map as MapIcon, Table, Info, Globe, Linkedin, MessageSquare } from 'lucide-react';
+import { Layers, Map as MapIcon, Table, Info, Globe, Linkedin, MessageSquare, ZoomIn, ZoomOut, Type, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const Map = dynamic<any>(() => import('./Map'), {
     ssr: false,
     loading: () => <div className="w-full h-full bg-slate-900 flex items-center justify-center text-white font-medium">Initializing Map...</div>
 });
 
-export type BaseLayer = 'satellite' | 'dark';
+export type BaseLayer = 'satellite';
 
 export interface KhasraData {
     id: string;
@@ -33,9 +33,11 @@ export default function Dashboard() {
     const [selectedPolyIds, setSelectedPolyIds] = useState<string[]>([]);
     const [labelField, setLabelField] = useState<string>('');
     const [selectedCRS, setSelectedCRS] = useState<CRS>('UTM42N');
-    const [baseLayer, setBaseLayer] = useState<BaseLayer>('dark');
+    const [baseLayer] = useState<BaseLayer>('satellite');
     const [isProcessing, setIsProcessing] = useState(false);
     const [fileVersion, setFileVersion] = useState(0);
+    const [labelScale, setLabelScale] = useState(1.0);
+    const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
     const handleFileProcessed = (geojson: any) => {
         setIsProcessing(true);
@@ -123,18 +125,28 @@ export default function Dashboard() {
                     </div>
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-3 md:gap-6 w-full md:w-auto">
-                    <div className="flex items-center gap-2 bg-slate-800/80 rounded-lg p-1 border border-slate-700">
-                        <button
-                            onClick={() => setBaseLayer('dark')}
-                            className={`px-2 py-1 md:px-3 md:py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${baseLayer === 'dark' ? 'bg-slate-900 text-red-500 shadow-inner' : 'text-slate-400 hover:text-white'}`}
+
+                    <div className="flex items-center gap-1 bg-slate-800/80 rounded-lg p-1 border border-slate-700">
+                        <div className="pl-1 pr-1 md:pl-2 flex items-center gap-1.5 text-slate-400">
+                            <Type className="w-3 md:w-3.5 h-3 md:h-3.5" />
+                            <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider">Label Size</span>
+                        </div>
+                        <button 
+                            onClick={() => setLabelScale(prev => Math.max(0.5, prev - 0.1))}
+                            className="p-1 md:p-1.5 hover:bg-slate-700 rounded-md transition-colors text-slate-300"
+                            title="Decrease Label Size"
                         >
-                            Dark
+                            <ZoomOut className="w-3.5 h-3.5" />
                         </button>
-                        <button
-                            onClick={() => setBaseLayer('satellite')}
-                            className={`px-2 py-1 md:px-3 md:py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${baseLayer === 'satellite' ? 'bg-slate-900 text-red-500 shadow-inner' : 'text-slate-400 hover:text-white'}`}
+                        <div className="px-1 md:px-2 min-w-[32px] text-center">
+                            <span className="text-[10px] md:text-xs font-bold text-red-500">{Math.round(labelScale * 100)}%</span>
+                        </div>
+                        <button 
+                            onClick={() => setLabelScale(prev => Math.min(3.0, prev + 0.1))}
+                            className="p-1 md:p-1.5 hover:bg-slate-700 rounded-md transition-colors text-slate-300"
+                            title="Increase Label Size"
                         >
-                            Satellite
+                            <ZoomIn className="w-3.5 h-3.5" />
                         </button>
                     </div>
 
@@ -189,10 +201,12 @@ export default function Dashboard() {
                 </div>
             </header>
 
-            <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
+            <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
                 {/* Sidebar / Info Panel */}
-                <aside className="w-full md:w-80 border-b md:border-b-0 md:border-r border-slate-800 bg-slate-900/30 flex flex-col z-[5] max-h-[40vh] md:max-h-full">
-                    <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
+                <aside className={`transition-all duration-300 ease-in-out border-slate-800 bg-slate-900/30 flex flex-col z-[5] overflow-hidden
+                    ${isSidebarVisible ? 'w-full md:w-80 opacity-100 max-h-[40vh] md:max-h-full border-b md:border-b-0 md:border-r' : 'w-0 h-0 md:h-full md:w-0 opacity-0 max-h-0 border-0'}
+                    `}>
+                    <div className="p-6 flex-1 overflow-y-auto custom-scrollbar min-w-[300px] md:min-w-[320px]">
                         {!mapData ? (
                             <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
                                 <Info className="w-12 h-12 mb-4" />
@@ -258,7 +272,28 @@ export default function Dashboard() {
                 </aside>
 
                 {/* Map Area */}
-                <section className="flex-1 relative bg-slate-950">
+                <section className="flex-1 relative bg-slate-950 flex flex-col min-w-0">
+                    {/* Sidebar Toggle Button - Moved to bottom to avoid North Arrow overlap */}
+                    <div className="absolute bottom-8 left-6 z-[2000]">
+                        <button
+                            onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+                            className="p-2.5 bg-red-600 text-white rounded-lg shadow-2xl transition-all duration-300 hover:bg-red-700 hover:scale-105 active:scale-95 flex items-center gap-2 border border-red-500/50"
+                            title={isSidebarVisible ? "Hide side panel" : "Show side panel"}
+                        >
+                            {isSidebarVisible ? (
+                                <>
+                                    <ChevronLeft size={18} />
+                                    <span className="text-[10px] font-bold uppercase tracking-wider">Hide Side Panel</span>
+                                </>
+                            ) : (
+                                <>
+                                    <ChevronRight size={18} />
+                                    <span className="text-[10px] font-bold uppercase tracking-wider">Show Side Panel</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+
                     {!mapData && (
                         <div className="absolute inset-0 flex items-center justify-center z-10">
                             <div className="max-w-md text-center px-4">
@@ -276,6 +311,8 @@ export default function Dashboard() {
                             baseLayer={baseLayer}
                             fileVersion={fileVersion}
                             onSelect={handleSelectKhasra}
+                            labelScale={labelScale}
+                            isSidebarVisible={isSidebarVisible}
                         />
                     </div>
                 </section>

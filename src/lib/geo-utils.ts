@@ -9,9 +9,12 @@ const WGS84 = "EPSG:4326";
 export type CRS = 'UTM42N' | 'UTM43N';
 
 export interface Dimension {
-  point: [number, number]; // [lng, lat]
+  point: [number, number]; // [lng, lat] midpoint
+  geoP1: [number, number]; // [lng, lat] start vertex
+  geoP2: [number, number]; // [lng, lat] end vertex
   lengthMeters: number;
   label: string;
+  angleDeg: number;        // rotation angle aligned to the edge (CSS degrees)
 }
 
 export interface KhasraStats {
@@ -95,10 +98,20 @@ export function calculateDimensions(feature: any, crs: CRS): Dimension[] {
 
     const midpoint = turf.midpoint(p1, p2).geometry.coordinates as [number, number];
 
+    // Bearing of the edge in screen-space: atan2(dy, dx) in degrees
+    // dy is negated because screen Y increases downward
+    // Clamped to [-90, 90] so text is always readable (never upside-down)
+    let angleDeg = Math.atan2(-(y2 - y1), x2 - x1) * (180 / Math.PI);
+    if (angleDeg > 90) angleDeg -= 180;
+    if (angleDeg < -90) angleDeg += 180;
+
     dimensions.push({
       point: midpoint,
+      geoP1: p1 as [number, number],
+      geoP2: p2 as [number, number],
       lengthMeters,
-      label: formatKaramFeet(lengthMeters)
+      label: formatKaramFeet(lengthMeters),
+      angleDeg,
     });
   }
 
