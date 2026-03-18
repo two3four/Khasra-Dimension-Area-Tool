@@ -403,7 +403,7 @@ export default function Map({ data, selectedPolyIds, labelField, baseLayer, file
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
             {/* ── Compass Rose Overlay ─────────────────────────────────────────── */}
             <div style={{
-                position: 'absolute', top: 14, left: 14,
+                position: 'absolute', top: 14, right: 14,
                 zIndex: 1000, pointerEvents: 'none',
                 filter: 'drop-shadow(0 2px 14px rgba(0,0,0,0.85))',
             }} className="compass-container">
@@ -513,7 +513,7 @@ export default function Map({ data, selectedPolyIds, labelField, baseLayer, file
         @media (max-width: 768px) {
           .compass-container svg {
              transform: scale(0.65);
-             transform-origin: top left;
+             transform-origin: top right;
           }
         }
       `}</style>

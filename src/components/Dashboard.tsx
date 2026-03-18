@@ -273,8 +273,7 @@ export default function Dashboard() {
 
                 {/* Map Area */}
                 <section className="flex-1 relative bg-slate-950 flex flex-col min-w-0">
-                    {/* Sidebar Toggle Button - Moved to top-right to be visible on all devices */}
-                    <div className="absolute top-4 right-4 z-[2005]">
+                    <div className="absolute top-4 left-4 z-[2005]">
                         <button
                             onClick={() => setIsSidebarVisible(!isSidebarVisible)}
                             className="p-2 md:p-2.5 bg-red-600 text-white rounded-lg shadow-2xl transition-all duration-300 hover:bg-red-700 hover:scale-105 active:scale-95 flex items-center gap-2 border border-red-500/50"
