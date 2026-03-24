@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import FileUploader from './FileUploader';
 import { calculateKanalMarla, calculateDimensions, calculateProjectedArea, KhasraStats, Dimension, CRS } from '@/lib/geo-utils';
 import * as turf from '@turf/turf';
-import { Layers, Map as MapIcon, Table, Info, Globe, Linkedin, MessageSquare, ZoomIn, ZoomOut, Type, ChevronLeft, ChevronRight, HelpCircle, X } from 'lucide-react';
+import { Layers, Map as MapIcon, Table, Info, Globe, Linkedin, Briefcase, ZoomIn, ZoomOut, Type, ChevronLeft, ChevronRight, HelpCircle, X } from 'lucide-react';
 
 const Map = dynamic<any>(() => import('./Map'), {
     ssr: false,
@@ -192,10 +192,10 @@ export default function Dashboard() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-2 px-3 py-2 bg-green-600/10 hover:bg-green-600/20 text-green-500 rounded-lg transition-all border border-green-600/20 group"
-                                title="Discuss your requirements with me"
+                                title="View my portfolio"
                             >
-                                <MessageSquare className="w-4 h-4" />
-                                <span className="text-xs font-bold whitespace-nowrap">Discuss Requirements</span>
+                                <Briefcase className="w-4 h-4" />
+                                <span className="text-xs font-bold whitespace-nowrap">My Portfolio</span>
                             </a>
                             <a
                                 href="https://www.linkedin.com/in/siddique-akbar-436a651b7/?skipRedirect=true"
