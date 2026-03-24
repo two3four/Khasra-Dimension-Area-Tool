@@ -495,6 +495,31 @@ export default function Map({ data, selectedPolyIds, labelField, baseLayer, file
                             return polygonStyle(selectedPolyIds.includes(poly?.id || ''));
                         }}
                         onEachFeature={onEachFeature}
+                        pointToLayer={(feature, latlng) => {
+                            const name = feature.properties?.[labelField] || feature.properties?.name || '';
+                            if (name) {
+                                return L.marker(latlng, {
+                                    icon: L.divIcon({
+                                        className: 'point-label-icon',
+                                        html: `<div style="display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-100%);">
+                                            <div style="background:rgba(220,38,38,0.9);color:white;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:bold;white-space:nowrap;box-shadow:0 2px 4px rgba(0,0,0,0.5);">${name}</div>
+                                            <div style="width:2px;height:6px;background:rgba(220,38,38,0.9);"></div>
+                                            <div style="width:6px;height:6px;border-radius:50%;background:#fff;border:2px solid rgba(220,38,38,0.9);"></div>
+                                        </div>`,
+                                        iconSize: L.point(0, 0),
+                                        iconAnchor: L.point(0, 0)
+                                    })
+                                });
+                            }
+                            return L.circleMarker(latlng, {
+                                radius: 5,
+                                fillColor: '#ef4444',
+                                color: '#fff',
+                                weight: 1.5,
+                                opacity: 1,
+                                fillOpacity: 0.9
+                            });
+                        }}
                     />
                 )}
 

@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import FileUploader from './FileUploader';
 import { calculateKanalMarla, calculateDimensions, calculateProjectedArea, KhasraStats, Dimension, CRS } from '@/lib/geo-utils';
 import * as turf from '@turf/turf';
-import { Layers, Map as MapIcon, Table, Info, Globe, Linkedin, MessageSquare, ZoomIn, ZoomOut, Type, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Layers, Map as MapIcon, Table, Info, Globe, Linkedin, MessageSquare, ZoomIn, ZoomOut, Type, ChevronLeft, ChevronRight, HelpCircle, X } from 'lucide-react';
 
 const Map = dynamic<any>(() => import('./Map'), {
     ssr: false,
@@ -38,6 +38,7 @@ export default function Dashboard() {
     const [fileVersion, setFileVersion] = useState(0);
     const [labelScale, setLabelScale] = useState(1.0);
     const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+    const [isGuideVisible, setIsGuideVisible] = useState(false);
 
     const handleFileProcessed = (geojson: any) => {
         setIsProcessing(true);
@@ -49,7 +50,9 @@ export default function Dashboard() {
                 setLabelField(fields[0]);
             }
 
-            const polygons = geojson.features.map((feature: any, index: number) => {
+            const polygons = geojson.features
+                .filter((f: any) => f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon'))
+                .map((feature: any, index: number) => {
                 const center = turf.centerOfMass(feature).geometry.coordinates as [number, number];
                 return {
                     id: `poly-${index}`,
@@ -169,6 +172,13 @@ export default function Dashboard() {
                         className="px-2 md:px-4 py-1.5 md:py-2 text-xs md:text-sm font-medium text-slate-400 hover:text-white transition-colors border border-slate-700 md:border-none rounded-lg md:rounded-none"
                     >
                         Reset
+                    </button>
+                    <button
+                        onClick={() => setIsGuideVisible(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 md:py-2 text-xs md:text-sm font-medium text-blue-400 hover:bg-blue-900/30 hover:text-blue-300 transition-colors border border-blue-900 md:border-none rounded-lg md:rounded-none"
+                    >
+                        <HelpCircle className="w-4 h-4" />
+                        Guide
                     </button>
                     <div className="hidden lg:flex items-center gap-4 pl-4 border-l border-slate-800">
                         <div className="flex flex-col">
@@ -316,6 +326,51 @@ export default function Dashboard() {
                     </div>
                 </section>
             </main>
+
+            {/* Guide Modal Overlay */}
+            {isGuideVisible && (
+                <div className="absolute inset-0 z-[9999] p-4 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-lg w-full shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-800/50">
+                            <h2 className="text-lg font-bold flex items-center gap-2">
+                                <HelpCircle className="w-5 h-5 text-blue-400" />
+                                User Guide & Tools
+                            </h2>
+                            <button onClick={() => setIsGuideVisible(false)} className="text-slate-400 hover:text-white transition-colors p-1">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-5 text-sm text-slate-300 overflow-y-auto max-h-[70vh] custom-scrollbar">
+                            
+                            <div>
+                                <h3 className="font-bold text-white mb-1">📐 Dimension Labels (K vs ft)</h3>
+                                <p>When you select a Khasra/Polygon, side dimensions will be drawn. The labels use <strong>K</strong> for <em>Karam</em> and <strong>ft</strong> for <em>Feet</em>. This ensures you can read both common regional measurements at a glance.</p>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-white mb-1">🏷️ Label Field Column</h3>
+                                <p>You can choose which attribute from your Shapefile/KML data is used to label the polygons. Open the side panel and look for the <strong>Label By</strong> dropdown at the top of the Khasra list to change the active column.</p>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-white mb-1">🔍 Label Size</h3>
+                                <p>Use the <strong>Label Size</strong> (+ / -) controls in the top navigation bar. This scales all text annotations on the map so you can make them perfectly legible no matter how zoomed in or out you are.</p>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-white mb-1">🌐 Map Projection</h3>
+                                <p>Choose the correct <strong>Projection</strong> (e.g. UTM Zone 42N/43N) from the top bar to ensure the area and dimension calculations perfectly match ground truth distances for your region.</p>
+                            </div>
+
+                        </div>
+                        <div className="p-4 border-t border-slate-800 bg-slate-800/30 text-right">
+                            <button onClick={() => setIsGuideVisible(false)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                                Got it
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {

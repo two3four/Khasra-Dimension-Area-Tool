@@ -3,6 +3,8 @@
 import React, { useCallback, useState } from 'react';
 import { Upload, FileType, CheckCircle, AlertCircle } from 'lucide-react';
 import shp from 'shpjs';
+import { kml } from '@tmcw/togeojson';
+import JSZip from 'jszip';
 
 interface FileUploaderProps {
     onProcessed: (geojson: any) => void;
@@ -30,6 +32,56 @@ export default function FileUploader({ onProcessed }: FileUploaderProps) {
                 onProcessed(geojson);
             } catch (error) {
                 console.error('GeoJSON parsing error:', error);
+                setStatus('error');
+            }
+            return;
+        }
+
+        const kmlFile = fileList.find(f => f.name.endsWith('.kml'));
+        if (kmlFile) {
+            setFileName(kmlFile.name);
+            setStatus('processing');
+            try {
+                const text = await kmlFile.text();
+                const parser = new window.DOMParser();
+                const kmlDom = parser.parseFromString(text, 'text/xml');
+                const geojson = kml(kmlDom);
+                setStatus('success');
+                onProcessed(geojson);
+            } catch (error) {
+                console.error('KML parsing error:', error);
+                setStatus('error');
+            }
+            return;
+        }
+
+        const kmzFile = fileList.find(f => f.name.endsWith('.kmz'));
+        if (kmzFile) {
+            setFileName(kmzFile.name);
+            setStatus('processing');
+            try {
+                const buffer = await kmzFile.arrayBuffer();
+                const zip = await JSZip.loadAsync(buffer);
+                
+                let kmlText = '';
+                for (const [filename, fileData] of Object.entries(zip.files)) {
+                    if (filename.endsWith('.kml')) {
+                        kmlText = await fileData.async('text');
+                        break;
+                    }
+                }
+
+                if (!kmlText) {
+                    throw new Error('No KML file found inside KMZ');
+                }
+
+                const parser = new window.DOMParser();
+                const kmlDom = parser.parseFromString(kmlText, 'text/xml');
+                const geojson = kml(kmlDom);
+                setStatus('success');
+                onProcessed(geojson);
+            } catch (error) {
+                console.error('KMZ parsing error:', error);
                 setStatus('error');
             }
             return;
@@ -102,7 +154,7 @@ export default function FileUploader({ onProcessed }: FileUploaderProps) {
             <input
                 type="file"
                 multiple
-                accept=".zip,.shp,.dbf,.shx,.geojson,.json"
+                accept=".zip,.shp,.dbf,.shx,.geojson,.json,.kml,.kmz"
                 className="absolute inset-0 opacity-0 cursor-pointer"
                 onChange={(e) => {
                     const files = e.target.files;
@@ -132,7 +184,7 @@ export default function FileUploader({ onProcessed }: FileUploaderProps) {
                         {status === 'error' && 'Error parsing file'}
                     </p>
                     <p className="text-xs text-slate-500">
-                        {fileName || 'Drop .geojson, .shp, .dbf, .shx (or .zip)'}
+                        {fileName || 'Drop .geojson, .shp, .dbf, .shx, .kml, .kmz (or .zip)'}
                     </p>
                 </div>
             </div>
