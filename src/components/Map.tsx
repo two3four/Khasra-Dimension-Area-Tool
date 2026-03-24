@@ -37,9 +37,28 @@ function MapResizer({ data, fileVersion, isSidebarVisible }: { data: MapData | n
     return null;
 }
 
+function MapHoverHandler({ data, hoveredPolyId }: { data: MapData | null, hoveredPolyId: string | null }) {
+    const map = useMap();
+    useEffect(() => {
+        if (data && hoveredPolyId) {
+            const poly = data.polygons.find(p => p.id === hoveredPolyId);
+            if (poly) {
+                const layer = L.geoJSON(poly.feature);
+                const bounds = layer.getBounds();
+                if (bounds.isValid()) {
+                    // Slight padding so the polygon isn't tightly hugging the screen edge
+                    map.flyToBounds(bounds, { duration: 0.6, maxZoom: 19, padding: [40, 40] });
+                }
+            }
+        }
+    }, [hoveredPolyId, data, map]);
+    return null;
+}
+
 interface MapProps {
     data: MapData | null;
     selectedPolyIds: string[];
+    hoveredPolyId?: string | null;
     labelField: string;
     baseLayer: 'satellite' | 'dark';
     fileVersion: number;
@@ -369,15 +388,15 @@ function PolyLabels({ data, selectedPolyIds, labelField, labelScale }: {
     return <>{markers}</>;
 }
 
-export default function Map({ data, selectedPolyIds, labelField, baseLayer, fileVersion, onSelect, labelScale, isSidebarVisible }: MapProps) {
+export default function Map({ data, selectedPolyIds, hoveredPolyId, labelField, baseLayer, fileVersion, onSelect, labelScale, isSidebarVisible }: MapProps) {
     useEffect(() => { fixLeafletIcon(); }, []);
 
-    const polygonStyle = (isSelected: boolean) => ({
-        fillColor: isSelected ? '#ef4444' : '#fbbf24',
-        weight: isSelected ? 3 : 2,
+    const polygonStyle = (isSelected: boolean, isHovered: boolean = false) => ({
+        fillColor: isSelected ? '#ef4444' : isHovered ? '#f87171' : '#fbbf24',
+        weight: isSelected ? 3 : isHovered ? 2.5 : 2,
         opacity: 1,
-        color: isSelected ? '#ef4444' : '#fbbf24',
-        fillOpacity: isSelected ? 0.35 : 0.1,
+        color: isSelected ? '#ef4444' : isHovered ? '#f87171' : '#fbbf24',
+        fillOpacity: isHovered || isSelected ? 0.35 : 0.1,
     });
 
     const onEachFeature = (feature: any, layer: L.Layer) => {
@@ -492,7 +511,9 @@ export default function Map({ data, selectedPolyIds, labelField, baseLayer, file
                         data={data.geojson}
                         style={(feature) => {
                             const poly = data.polygons.find(p => p.feature === feature);
-                            return polygonStyle(selectedPolyIds.includes(poly?.id || ''));
+                            const isSelected = selectedPolyIds.includes(poly?.id || '');
+                            const isHovered = poly?.id === hoveredPolyId;
+                            return polygonStyle(isSelected, isHovered);
                         }}
                         onEachFeature={onEachFeature}
                         pointToLayer={(feature, latlng) => {
@@ -531,6 +552,7 @@ export default function Map({ data, selectedPolyIds, labelField, baseLayer, file
                 />
 
                 <MapResizer data={data} fileVersion={fileVersion} isSidebarVisible={isSidebarVisible} />
+                <MapHoverHandler data={data} hoveredPolyId={hoveredPolyId || null} />
 
                 <style jsx global>{`
         .leaflet-container { background: #020617 !important; }

@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import FileUploader from './FileUploader';
 import { calculateKanalMarla, calculateDimensions, calculateProjectedArea, KhasraStats, Dimension, CRS } from '@/lib/geo-utils';
 import * as turf from '@turf/turf';
-import { Layers, Map as MapIcon, Table, Info, Globe, Linkedin, Briefcase, ZoomIn, ZoomOut, Type, ChevronLeft, ChevronRight, HelpCircle, X } from 'lucide-react';
+import { Layers, Map as MapIcon, Table, Info, Globe, Linkedin, Briefcase, ZoomIn, ZoomOut, Type, ChevronLeft, ChevronRight, HelpCircle, X, Search } from 'lucide-react';
 
 const Map = dynamic<any>(() => import('./Map'), {
     ssr: false,
@@ -39,6 +39,8 @@ export default function Dashboard() {
     const [labelScale, setLabelScale] = useState(1.0);
     const [isSidebarVisible, setIsSidebarVisible] = useState(true);
     const [isGuideVisible, setIsGuideVisible] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [hoveredPolyId, setHoveredPolyId] = useState<string | null>(null);
 
     const handleFileProcessed = (geojson: any) => {
         setIsProcessing(true);
@@ -242,14 +244,37 @@ export default function Dashboard() {
                                             </select>
                                         </div>
                                     </div>
+
+                                    {/* Search Bar */}
+                                    <div className="relative mb-4">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <Search className="w-4 h-4 text-slate-500" />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            placeholder={`Search by ${labelField}...`}
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="w-full bg-slate-800/80 border border-slate-700 text-sm rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-red-500 text-slate-200 placeholder-slate-500 transition-colors"
+                                        />
+                                    </div>
+
                                     <div className="space-y-3">
-                                        {mapData.polygons.map((poly, idx) => {
+                                        {mapData.polygons
+                                            .filter(poly => {
+                                                if (!searchQuery) return true;
+                                                const labelValue = String(poly.feature.properties[labelField] || `ID: ${poly.id}`).toLowerCase();
+                                                return labelValue.includes(searchQuery.toLowerCase());
+                                            })
+                                            .map((poly, idx) => {
                                             const isSelected = selectedPolyIds.includes(poly.id);
                                             return (
                                                 <div
                                                     key={poly.id}
                                                     className={`p-4 rounded-xl bg-slate-800/50 border ${isSelected ? 'border-red-500' : 'border-slate-700/50'} hover:border-red-500/50 transition-all cursor-pointer group`}
                                                     onClick={() => handleSelectKhasra(poly.id)}
+                                                    onMouseEnter={() => setHoveredPolyId(poly.id)}
+                                                    onMouseLeave={() => setHoveredPolyId(null)}
                                                 >
                                                     <div className="flex justify-between items-start mb-2">
                                                         <span className="text-xs font-bold text-red-400">
@@ -316,6 +341,7 @@ export default function Dashboard() {
                         <Map
                             data={mapData}
                             selectedPolyIds={selectedPolyIds}
+                            hoveredPolyId={hoveredPolyId}
                             labelField={labelField}
                             baseLayer={baseLayer}
                             fileVersion={fileVersion}
